@@ -161,7 +161,8 @@ class midjourney extends GenericController
             // Only attach successfully generated images, seems like all other images will be deleted from Discord CDN
             if (($this->job['status'] == 'ok') && !empty($json['attachments'])) {
                 $url_adjusted = (string) $json['attachments'][0]['url'];
-                $url_adjusted = preg_replace('/\?.*$/', '', $url_adjusted);
+                // Do not remove Discord params
+                // $url_adjusted = preg_replace('/\?.*$/', '', $url_adjusted);
                 $resultParse->images = array($url_adjusted);
             }
 
@@ -264,13 +265,19 @@ class midjourney extends GenericController
                     'replyUrl'  => $url_callback,
                     'replyRef'  => $this->job_id,
                 ];
+<<<<<<< HEAD:controller/midjourney.php
+=======
+
+                if (!empty($prompt))
+                    $payload += ['prompt' => str_replace('&quot;', '"', $prompt)];
+>>>>>>> c5d966f (Version 1.0.8 with Gemini and Gemini Vision support and Simple mentions version 2 support.):privet/ailabs/controller/midjourney.php
             }
         }
 
         // https://useapi.net/docs/api-v1/jobs-imagine
         if (empty($payload)) {
             $payload = [
-                'prompt'                => $request,
+                'prompt'                => str_replace('&quot;', '"', $request),
                 'discord'               => $this->cfg->discord,
                 'server'                => $this->cfg->server,
                 'channel'               => $this->cfg->channel,

@@ -136,15 +136,33 @@ class listener implements EventSubscriberInterface
 
         // Remove all mentioned AI user names from request
         foreach ($ailabs_users as $user) {
+            $userName = $user['username'];
             $count = 0;
+<<<<<<< HEAD:event/listener.php
             $updated = preg_replace('/\[smention\][\s\t]?' . $user['username'] . '[\s\t]?\[\/smention\]/', '', $request, -1, $count);
+=======
+            // v 2.x uses smention tag with user id inside: [smeniton u=user_id]user_name[/smention]
+            $updated = preg_replace("/\[smention\s*u=\d+\]\s*$userName\s*\[\/smention\]\s*/", '', $request, -1, $count);
+            if ($count > 0) {
+                $request = $updated;
+            }
+            // v 1.x uses mention tag
+            $updated = preg_replace('/\[mention\][\s\t]?' . $user['username'] . '[\s\t]?\[\/mention\]/', '', $request, -1, $count);
+>>>>>>> c5d966f (Version 1.0.8 with Gemini and Gemini Vision support and Simple mentions version 2 support.):privet/ailabs/event/listener.php
             if ($count > 0) {
                 $request = $updated;
             }
         }
 
         // Replace mention tags
+<<<<<<< HEAD:event/listener.php
         $request = preg_replace(array('/\[smention.*?\]/', '/\[\/smention\]/'), array('', ''), $request);
+=======
+        // v 2.x uses smention tag with user id inside: [smeniton u=user_id]user_name[/smention]
+        $request = preg_replace(array('/\[smention\s*u=\d+\]/', '/\[\/smention\]/'), array('', ''), $request);
+        // v 1.x uses mention tag
+        $request = preg_replace(array('/\[mention\]/', '/\[\/mention\]/'), array('', ''), $request);
+>>>>>>> c5d966f (Version 1.0.8 with Gemini and Gemini Vision support and Simple mentions version 2 support.):privet/ailabs/event/listener.php
 
         // Replace size tags
         $request = preg_replace(array('/\[size=[0-9]+\]/', '/\[\/size\]/'), array('', ''), $request);
@@ -251,9 +269,9 @@ class listener implements EventSubscriberInterface
     {
         $return = array();
         $sql = 'SELECT c.user_id, ' .
-            'c.forums_post LIKE \'%"' . $id . '"%\' as post, ' .
-            'c.forums_reply LIKE \'%"' . $id . '"%\' as reply, ' .
-            'c.forums_mention LIKE \'%"' . $id . '"%\' as mention, ' .
+            '(c.forums_post LIKE \'%"' . $id . '"%\' OR c.forums_post LIKE \'%"ALL"%\') as post, ' .
+            '(c.forums_reply LIKE \'%"' . $id . '"%\' OR c.forums_reply LIKE \'%"ALL"%\') as reply, ' .
+            '(c.forums_mention LIKE \'%"' . $id . '"%\' OR c.forums_mention LIKE \'%"ALL"%\') as mention, ' .
             'c.controller, ' .
             'u.username ' .
             'FROM ' . $this->users_table . ' c ' .
