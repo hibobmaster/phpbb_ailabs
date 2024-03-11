@@ -263,7 +263,7 @@ class midjourney extends GenericController
                     'discord'   => $this->cfg->discord,
                     'maxJobs'   => $maxJobs,
                     'replyUrl'  => $url_callback,
-                    'replyRef'  => $this->job_id,
+                    'replyRef'  => (string) $this->job_id,
                 ];
 <<<<<<< HEAD:controller/midjourney.php
 =======
@@ -283,7 +283,7 @@ class midjourney extends GenericController
                 'channel'               => $this->cfg->channel,
                 'maxJobs'               => $maxJobs,
                 'replyUrl'              => $url_callback,
-                'replyRef'              => $this->job_id,
+                'replyRef'              => (string) $this->job_id,
             ];
         }
 
