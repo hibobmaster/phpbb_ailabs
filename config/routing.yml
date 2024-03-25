@@ -1,0 +1,36 @@
+privet_ailabs_chatgpt_page:
+    path: /ailabs/chatgpt
+    defaults: { _controller: privet.ailabs.controller_chatgpt:execute }
+
+privet_ailabs_dalle_page:
+    path: /ailabs/dalle
+    defaults: { _controller: privet.ailabs.controller_dalle:execute }
+
+privet_ailabs_stablediffusion_page:
+    path: /ailabs/stablediffusion
+    defaults: { _controller: privet.ailabs.controller_stablediffusion:execute }
+
+privet_ailabs_midjourney_page:
+    path: /ailabs/midjourney
+    defaults: { _controller: privet.ailabs.controller_midjourney:execute }
+
+privet_ailabs_midjourney_callback:
+    path: /ailabs/midjourney/callback/{job_id}/{ref}/{action}
+    methods: [POST]
+    defaults: 
+        _controller: privet.ailabs.controller_midjourney:callback 
+        mode: 'post'
+    requirements:
+        job_id: \d+
+        ref: "[a-zA-Z0-9]+"
+        action: posted|reply
+
+privet_ailabs_scriptexecute_page:
+    path: /ailabs/scriptexecute
+    defaults: { _controller: privet.ailabs.controller_scriptexecute:execute }    
+
+privet_ailabs_view_log_controller_page:
+    path: /ailabs/log/{post_id}
+    defaults: { _controller: privet.ailabs.controller_log:view_log  }    
+    requirements:
+        post_id: \d+

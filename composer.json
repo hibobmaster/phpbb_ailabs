@@ -1,0 +1,39 @@
+{
+    "name": "privet/ailabs",
+    "type": "phpbb-extension",
+    "description": "AI Labs",
+    "homepage": "https://privet.fun",
+    "version": "1.0.6",
+    "time": "2023-10-07",
+    "keywords": [
+        "phpbb",
+        "extension",
+        "privet",
+        "privet.fun",
+        "ailabs",
+        "chatgpt",
+        "dalle",
+        "openai",
+        "stable diffusion",
+        "midjourney",
+        "ai"
+    ],
+    "license": "GPL-2.0-only",
+    "authors": [
+        {
+            "name": "privet.fun",
+            "homepage": "https://privet.fun"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "phpbb/phpbb": ">=3.2",
+        "composer/installers": "~1.0.0"
+    },
+    "extra": {
+        "display-name": "AI Labs",
+        "soft-require": {
+            "phpbb/phpbb": ">=3.2"
+        }
+    }
+}
