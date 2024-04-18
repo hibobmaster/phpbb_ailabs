@@ -4,7 +4,7 @@
  *
  * AI Labs extension
  *
- * @copyright (c) 2023, privet.fun, https://privet.fun
+ * @copyright (c) 2024, privet.fun, https://privet.fun
  * @license GNU General Public License, version 2 (GPL-2.0)
  *
  */
@@ -15,23 +15,23 @@ use privet\ailabs\includes\GenericCurl;
 use privet\ailabs\includes\GenericController;
 use privet\ailabs\includes\resultSubmit;
 use privet\ailabs\includes\resultParse;
+use privet\ailabs\includes\RequestHelper;
 
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 /*
 
-// How to get api token and configure Discord 
-// https://useapi.net/docs/start-here 
+// Setup Pika
+// https://useapi.net/docs/start-here/setup-pika 
 
 config: 
 
 {
     "api_key":                  "<useapi.net api token>",
-    "url_imagine":              "https://api.useapi.net/v2/jobs/imagine",
+    "url_create":               "https://api.useapi.net/v1/pika/create",
     "discord":                  "<Discord token, required>",
-    "server":                   "<Discord server id, required>",
     "channel":                  "<Discord channel id, required>",
-    "maxJobs":                  "<Midjourney subscription plan Maximum Concurrent Jobs, optional, default 3>",
+    "maxJobs":                  "<Pika subscription plan Maximum Concurrent Jobs, optional, default 10>",
     "retryCount":               "<Maximum attempts to submit request, optional, default 80>",
     "timeoutBeforeRetrySec":    "<Time to wait before next retry, optional, default 15>",
 }
@@ -40,13 +40,16 @@ template:
 
 [quote={poster_name} post_id={post_id} user_id={poster_id}]{request}[/quote]
 {response}
-{images}
+{mp4}
 {info}
 
 */
 
-class midjourney extends GenericController
+class pika extends GenericController
 {
+    protected $tmpfile = null;
+    protected $opts_errors = [];
+
     /**
      * @return \Symfony\Component\HttpFoundation\Response A Symfony Response object
      */
@@ -89,32 +92,14 @@ class midjourney extends GenericController
                     }
                 }
 
-                $response_message_id = $this->process_response_message_id($json);
-
-                // https://useapi.net/docs/api-v2/post-jobs-button
-                // HTTP 409 Conflict
-                // Button <U1 | U2 | U3 | U4> already executed by job <jobid>
-                if (!empty($response_message_id) && !empty($response_codes) && in_array(409, $response_codes)) {
-                    $sql = 'SELECT j.response_post_id  FROM ' . $this->jobs_table . ' j  WHERE ' .
-                        $this->db->sql_build_array('SELECT', ['response_message_id' => $response_message_id]);
-                    $result = $this->db->sql_query($sql);
-                    $row = $this->db->sql_fetchrow($result);
-                    $this->db->sql_freeresult($result);
-
-                    if (!empty($row)) {
-                        $viewtopic = "{$this->root_path}viewtopic.{$this->php_ext}";
-                        $json['response'] = $this->language->lang('AILABS_MJ_BUTTON_ALREADY_USED', $json['button'], $viewtopic, $row['response_post_id']);
-                    }
-                }
+                $this->process_response_message_id($json);
 
                 break;
             case 'reply':
-                // Raw response from useapi.net /imagine, /button or /seed API endpoints
+                // Raw response from useapi.net API endpoints:
+                // - https://useapi.net/docs/api-pika-v1/post-pika-create 
+                // - https://useapi.net/docs/api-pika-v1/post-pika-button
                 $json = $data;
-
-                // Upscale buttons U1..U4 may create race condition, let's rely on .../posted to process response
-                if (!empty($json) && !empty($json['code']) && $json['code'] === 409)
-                    return new JsonResponse('Skipping 409');
 
                 $this->process_response_message_id($json);
 
@@ -126,7 +111,7 @@ class midjourney extends GenericController
 
         // Assume the worst
         $this->job['status'] = 'failed';
-        $this->job['response'] = !empty($json) && !empty($json['error']) ? '[color=#FF0000]' . $json['error'] . '[/color]' : $this->language->lang('AILABS_ERROR_CHECK_LOGS');
+        $this->job['response'] = $this->language->lang('AILABS_ERROR_CHECK_LOGS');
 
         if (!empty($json)) {
             if (!empty($json['status']))
@@ -141,18 +126,14 @@ class midjourney extends GenericController
                         break;
                 }
 
+            $error = empty($json['error']) ? null : $json['error'] . (empty($json['errorDetails']) ? '' : "\n" . $json['errorDetails']);
+            $content = empty($json['content']) ? null : preg_replace('/<@(\d+)>/', '', $json['content']);
 
-            if (!empty($json['code']))
-                switch ($json['code']) {
-                    case 200: // HTTP OK
-                        $this->job['response'] = preg_replace('/<@(\d+)>/', '', $json['content']);
-                        break;
-                    case 422: // HTTP 422 Unprocessable Content - Moderated                    
-                        $this->job['response'] =
-                            '[color=#FF0000]' . $json['error'] . '
-' . $json['errorDetails'] . '[/color]';
-                        break;
-                }
+            // HTTP 200
+            if (!empty($json['code']) && ($json['code'] == 200))
+                $this->job['response'] = $content;
+            else
+                $this->job['response'] = sprintf($this->language->lang('AILABS_ERROR'), !empty($error) ? $error : $content);
         }
 
         if (!empty($json) && in_array($this->job['status'], ['ok', 'failed'])) {
@@ -164,11 +145,11 @@ class midjourney extends GenericController
                 $url_adjusted = (string) $json['attachments'][0]['url'];
                 // Do not remove Discord params
                 // $url_adjusted = preg_replace('/\?.*$/', '', $url_adjusted);
-                $resultParse->images = array($url_adjusted);
+                $resultParse->mp4 = array($url_adjusted);
             }
 
             if (!empty($json['buttons']))
-                $resultParse->info =  $this->language->lang('AILABS_MJ_BUTTONS') . implode(" • ", $json['buttons']) . " • Seed";
+                $resultParse->info =  $this->language->lang('AILABS_PIKA_BUTTONS') . implode(" • ", $json['buttons']);
 
             $response = $this->replace_vars($this->job, $resultParse);
 
@@ -181,7 +162,7 @@ class midjourney extends GenericController
             'status'            => $this->job['status'],
             'response'          => utf8_encode_ucr($this->job['response']),
             'response_time'     => time(),
-            'response_post_id'  => $this->job['response_post_id'],
+            'response_post_id'  => array_key_exists('response_post_id', $this->job) ? $this->job['response_post_id'] : null,
             'log'               => json_encode($this->log)
         ];
 
@@ -232,11 +213,11 @@ class midjourney extends GenericController
             $this->db->sql_freeresult($result);
         }
 
-        $maxJobs = empty($this->cfg->maxJobs) ? 3 : $this->cfg->maxJobs;
+        $maxJobs = empty($this->cfg->maxJobs) ? 10 : $this->cfg->maxJobs;
 
         $url_callback = generate_board_url(true) .
             $this->helper->route(
-                'privet_ailabs_midjourney_callback',
+                'privet_ailabs_pika_callback',
                 [
                     'job_id'    => $this->job_id,
                     'ref'       => $this->job['ref'],
@@ -246,65 +227,114 @@ class midjourney extends GenericController
 
         // Remove leading new lines and empty spaces 
         $request = preg_replace('/^[\r\n\s]+/', '', $this->job['request']);
-        $request = str_replace('&quot;', '"', $request);
+        // Adjust quotes 
+        $request = str_replace(['&quot;', '&amp;'], ['"', '&'], $request);
         $payload = null;
-        $seed = false;
+        $image = null;
 
+        // Check for button 
         if (!empty($parent_job)) {
             $log = json_decode($parent_job['log'], true);
-            $prompt = null;
-            $button = null;
+            $button = trim($request);
 
-            // Split the string by new line characters
-            $lines = preg_split('/\r\n|\r|\n/', $request);
-
-            if (count($lines) >= 2) {
-                $button = trim($lines[0]);
-                $prompt = trim(implode("\n", array_slice($lines, 1)));
-            } else {
-                $button =  trim($request);
-            }
-
-            // Seed is a special case, can be only applied to completed job (the one which has buttons)
-            $seed = strcasecmp($button, "SEED") == 0;
-
-            // https://useapi.net/docs/api-v2/post-jobs-button
-            // https://useapi.net/docs/api-v2/post-jobs-seed
+            // https://useapi.net/docs/api-pika-v1/post-pika-button
             if (
                 !empty($log) &&
                 !empty($log['response.json']) &&
                 !empty($log['response.json']['jobid']) &&
                 !empty($log['response.json']['buttons']) &&
-                (in_array($button, $log['response.json']['buttons'], true) || $seed)
+                (in_array($button, $log['response.json']['buttons'], true))
             ) {
                 $payload = [
                     'jobid'     => $log['response.json']['jobid'],
                     'discord'   => $this->cfg->discord,
+                    'maxJobs'   => $maxJobs,
                     'replyUrl'  => $url_callback,
                     'replyRef'  => (string) $this->job_id,
                 ];
 
-                if ($seed == false) {
-                    $payload += ['button' => $button];
-                    $payload += ['maxJobs' => $maxJobs];
-                }
-
-                if (!empty($prompt))
-                    $payload += ['prompt' => $prompt];
+                $payload += ['button' => $button];
             }
         }
 
-        // https://useapi.net/docs/api-v2/post-jobs-imagine
         if (empty($payload)) {
+            // Remove all BBCodes
+            $request = preg_replace('/\[(.*?)=?.*?\](.*?)\[\/\\1\]/i', '$2', $request);
+
+            // Check for attachments first
+            $fileContent = $this->load_first_attachment($this->job['post_id']);
+
+            if (!empty($fileContent)) {
+                $this->tmpfile = tmpfile();
+                $temp_filename = stream_get_meta_data($this->tmpfile)['uri'];
+
+                fwrite($this->tmpfile, $fileContent);
+
+                $image = curl_file_create($temp_filename, 'image/png');
+                $this->log['attachment_temp_filename'] = $temp_filename;
+                $this->log['attachment_temp_filename_size'] = filesize($temp_filename);
+            } else {
+                // If none found attempt to find URLs in the post body
+                $url_pattern = '/\bhttps?:\/\/[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|\/))/i';
+
+                preg_match($url_pattern, $request, $urls);
+
+                if (isset($urls[0])) {
+                    $url = $urls[0];
+
+                    // Remove URL from the post (request) text
+                    $request = str_replace($url, '', $request);
+
+                    $this->log['url'] = $url;
+                    $this->log['url_board'] = generate_board_url();
+
+                    $headers = null;
+
+                    // If link is pointing to board download URL attempt to pass user's session cookie 
+                    if (stripos($url, generate_board_url()) === 0) {
+                        $requestHelper = new RequestHelper($this->request);
+                        $requestHelper->streamContextCreate("GET", $headers);
+                        if (!empty($headers))
+                            $this->log['url_headers'] = $headers;
+                    }
+
+                    $this->tmpfile = tmpfile();
+                    $temp_filename = stream_get_meta_data($this->tmpfile)['uri'];
+                    $url_result = $this->urlToFile($url, $temp_filename, $headers, $this->debug);
+
+                    // HTTP OK
+                    if ($url_result == 200) {
+                        $image = curl_file_create($temp_filename, 'image/png');
+                        $this->log['url_temp_filename'] = $temp_filename;
+                        $this->log['url_temp_filename_size'] = filesize($temp_filename);
+                    } else {
+                        $this->log['url_error'] = $url_result;
+                        array_push($this->opts_errors, $this->language->lang('AILABS_ERROR_UNABLE_DOWNLOAD_URL') . $url .
+                            (is_numeric($url_result) && ($url_result != 0) ? ' ( HTTP ' . $url_result . ' )' : ''));
+                    }
+                }
+            }
+
+            // We expect to have prompt with at least one alpha-numeric character or emoji
+            $has_prompt = !empty(trim($request));
+
+            if (empty($image) && empty($has_prompt))
+                array_push($this->opts_errors, $this->language->lang('AILABS_NO_PROMPT'));
+
+            // https://useapi.net/docs/api-pika-v1/post-pika-create
             $payload = [
-                'prompt'                => str_replace('&quot;', '"', $request),
-                'discord'               => $this->cfg->discord,
-                'server'                => $this->cfg->server,
-                'channel'               => $this->cfg->channel,
-                'maxJobs'               => $maxJobs,
-                'replyUrl'              => $url_callback,
-                'replyRef'              => (string) $this->job_id,
+                'discord'   => $this->cfg->discord,
+                'channel'   => $this->cfg->channel,
+                'maxJobs'   => $maxJobs,
+                'replyUrl'  => $url_callback,
+                'replyRef'  => (string) $this->job_id,
             ];
+
+            if (!empty($has_prompt))
+                $payload['prompt'] = $request;
+
+            if (!empty($image))
+                $payload['image'] = $image;
         }
 
         array_push($this->redactOpts, 'discord');
@@ -318,53 +348,64 @@ class midjourney extends GenericController
         $this->job_update(['status' => $this->job['status']]);
         $this->post_update($this->job);
 
-        $api = new GenericCurl($this->cfg->api_key, 0);
-        $api->debug = $this->debug;
-        $this->cfg->api_key = null;
+        $data = null;
 
-        $retryCount = empty($this->cfg->retryCount) ? 80 : $this->cfg->retryCount;
-        $timeoutBeforeRetrySec = empty($this->cfg->timeoutBeforeRetrySec) ? 15 : $this->cfg->timeoutBeforeRetrySec;
+        if (empty($this->opts_errors)) {
+            $api = new GenericCurl($this->cfg->api_key);
+            $api->debug = $this->debug;
+            $this->cfg->api_key = null;
 
-        $count  = 0;
-        $response = null;
-        // https://useapi.net/docs/api-v2/post-jobs-imagine
-        $url = $this->cfg->url_imagine;
-        // https://useapi.net/docs/api-v2/post-jobs-seed
-        // https://useapi.net/docs/api-v2/post-jobs-button
-        if (!empty($opts['jobid']))
-            $url = empty($opts['button']) ? str_replace('/imagine', '/seed', $url) : str_replace('/imagine', '/button', $url);
+            // https://useapi.net/docs/api-pika-v1/post-pika-animate
+            // Content-Type: multipart/form-data
+            $api->forceMultipart = true;
 
-        // Attempt to submit request for (retryCount * timeoutBeforeRetrySec) seconds.
-        // Required for cases where multiple users simultaneously submitting requests or Midjourney query is full.
-        do {
-            $count++;
+            $api->retryCount = empty($this->cfg->retryCount) ? 80 : $this->cfg->retryCount;
+            $api->timeoutBeforeRetrySec = empty($this->cfg->timeoutBeforeRetrySec) ? 15 : $this->cfg->timeoutBeforeRetrySec;
+            $api->retryCodes = [429];
+
+            $response = null;
+            // https://useapi.net/docs/api-pika-v1/post-pika-create
+            $url = $this->cfg->url_create;
+            // https://useapi.net/docs/api-pika-v1/post-pika-button
+            if (!empty($opts['jobid']))
+                $url = str_replace('/create', '/button', $url);
+            else 
+                if (!empty($opts['image']))
+                $url = str_replace('/create', '/animate', $url);
+
             $response = $api->sendRequest($url, 'POST', $opts);
-        } while (
-            // 429: Maximum of xx jobs executing in parallel supported
-            in_array(429, $api->responseCodes) &&
-            $count < $retryCount &&
-            sleep($timeoutBeforeRetrySec) !== false
-        );
 
-        $data = [
-            'request.time'                          => date('Y-m-d H:i:s'),
-            'request.config.retryCount'             => $retryCount,
-            'request.config.timeoutBeforeRetrySec'  => $timeoutBeforeRetrySec,
-            'request.attempts'                      => $count,
-            'response.codes'                        => $api->responseCodes,
-            'response.length'                       => strlen($response),
-            'response.json'                         => json_decode($response)
-        ];
+            $data = [
+                'request.url'                           => $url,
+                'request.time'                          => date('Y-m-d H:i:s'),
+                'request.config.retryCount'             => $api->retryCount,
+                'request.config.timeoutBeforeRetrySec'  => $api->timeoutBeforeRetrySec,
+                'request.attempts'                      => sizeof($api->responseCodes),
+                'response.codes'                        => $api->responseCodes,
+                'response.length'                       => strlen($response),
+                'response.json'                         => json_decode($response)
+            ];
+        } else {
+            $data = [
+                'response.json' =>
+                [
+                    'error' => implode("\n\r", $this->opts_errors)
+                ]
+            ];
+        }
 
         $url_callback = generate_board_url(true) .
             $this->helper->route(
-                'privet_ailabs_midjourney_callback',
+                'privet_ailabs_pika_callback',
                 [
                     'job_id'    => $this->job_id,
                     'ref'       => $this->job['ref'],
                     'action'    => 'posted'
                 ]
             );
+
+        $api = new GenericCurl();
+        $api->debug = $this->debug;
 
         $api->sendRequest($url_callback, 'POST', $data);
 

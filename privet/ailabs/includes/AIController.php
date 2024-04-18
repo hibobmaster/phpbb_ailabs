@@ -39,6 +39,8 @@ class AIController
     protected $cfg;
     protected $lang;
 
+    protected $debug = false;
+
     public function __construct(
         \phpbb\auth\auth $auth,
         \phpbb\config\config $config,
@@ -126,6 +128,8 @@ class AIController
             return new JsonResponse($this->log);
         }
 
+        $this->debug = property_exists($this->cfg, 'debug');
+
         return $this->process();
     }
 
@@ -162,7 +166,9 @@ class AIController
     protected function replace_vars($job, resultParse $resultParse)
     {
         $images = null;
+        $mp4 = null;
         $attachments = null;
+
         if (!empty($resultParse->images)) {
             $images = [];
             $attachments = [];
@@ -176,12 +182,20 @@ class AIController
             $attachments = implode("", $attachments);
         }
 
+        if (!empty($resultParse->mp4)) {
+            $mp4 = [];
+            foreach ($resultParse->mp4 as $item)
+                array_push($mp4, '[mp4]' . $item . '[/mp4]' . PHP_EOL . PHP_EOL);
+            $mp4 = implode("", $mp4);
+        }
+
         $tokens = array(
             '{post_id}'         => $job['post_id'],
             '{request}'         => $job['request'],
             '{info}'            => $resultParse->info,
             '{response}'        => $resultParse->message,
             '{settings}'        => $resultParse->settings,
+            '{mp4}'             => $mp4,
             '{images}'          => $images,
             '{attachments}'     => $attachments,
             '{poster_id}'       => $job['poster_id'],
@@ -337,7 +351,7 @@ class AIController
             getType($forumId) != 'integer' ||
             getType($userId) != 'integer'
         )
-            throw 'Type Missmatch';
+            throw 'Type Mismatch';
 
         if ($postId <= 0)
             throw 'Post ID cannot be zero!';
@@ -469,6 +483,92 @@ class AIController
         return implode(' ', $trimmedWords) . '...'; //'…';
     }
 
+    protected function retrieve_history($context_size)
+    {
+        $job = ['post_text' =>  $this->job['post_text']];
+
+        // <QUOTE author="author" post_id="post_id" time="time" user_id="user_id">...
+        $pattern = '/<QUOTE\sauthor="(.*?)"\spost_id="(.*?)"\stime="(.*?)"\suser_id="(.*?)">/i';
+        $match_ind_author = 1;
+        $match_ind_post_id = 2;
+        $match_ind_time = 3;
+        $match_ind_user_id = 4;
+
+        // Attempt to unwind history using quoted posts
+        $history = [];
+        $history_tokens = 0;
+        $round = -1;
+        do {
+            $round++;
+
+            $matches = null;
+
+            preg_match(
+                $pattern,
+                $job['post_text'],
+                $matches
+            );
+
+            $job = null;
+
+            if (!empty($matches) && !empty($matches[$match_ind_post_id])) {
+                $postid = (int) $matches[$match_ind_post_id];
+
+                $sql = 'SELECT j.job_id, j.post_id, j.response_post_id, j.request, j.response, p.post_text, p.post_time, j.request_tokens, j.response_tokens ' .
+                    'FROM ' . $this->jobs_table . ' j ' .
+                    'JOIN ' . POSTS_TABLE . ' p ON p.post_id = j.post_id ' .
+                    'WHERE ' . $this->db->sql_build_array('SELECT', ['response_post_id' => $postid]);
+                $result = $this->db->sql_query($sql);
+                $job = $this->db->sql_fetchrow($result);
+                $this->db->sql_freeresult($result);
+
+                if (!empty($job)) {
+                    $history_tokens += ($job['request_tokens'] + $job['response_tokens']);
+
+                    $discard = $context_size < $history_tokens;
+
+                    $history_decoded_request = utf8_decode_ncr($job['request']);
+                    $history_decoded_response = utf8_decode_ncr($job['response']);
+
+                    $history[] = [
+                        'postid'                => $postid,
+                        'request'               => $history_decoded_request,
+                        'request_tokens'        => (int) $job['request_tokens'],
+                        'response'              => utf8_decode_ncr($job['response']),
+                        'response_tokens'       => (int) $job['response_tokens'],
+                        'running_total_tokens'  => $history_tokens,
+                        'discard'               => $discard
+                    ];
+
+                    if ($discard)
+                        break;
+
+                    if ($round == 0) {
+                        // Remove quoted content from the quoted post
+                        $post_text = sprintf(
+                            '<r><QUOTE author="%1$s" post_id="%2$s" time="%3$s" user_id="%4$s"><s>[quote=%1$s post_id=%2$s time=%3$s user_id=%4$s]</s>%6$s<e>[/quote]</e></QUOTE>%5$s</r>',
+                            (string) $matches[$match_ind_author],
+                            (string) $matches[$match_ind_post_id],
+                            (string) $matches[$match_ind_time],
+                            (string) $matches[$match_ind_user_id],
+                            $this->job['request'],
+                            property_exists($this->cfg, 'max_quote_length') ?
+                                $this->trim_words($history_decoded_response, (int) $this->cfg->max_quote_length) : $history_decoded_response
+                        );
+
+                        $sql = 'UPDATE ' . POSTS_TABLE .
+                            ' SET ' . $this->db->sql_build_array('UPDATE', ['post_text' => utf8_encode_ucr($post_text)]) .
+                            ' WHERE post_id = ' . (int) $this->job['post_id'];
+                        $result = $this->db->sql_query($sql);
+                        $this->db->sql_freeresult($result);
+                    }
+                }
+            }
+        } while (!empty($job));
+
+        return $history;
+    }
+
     protected function load_first_attachment($postId)
     {
         $sql = 'SELECT physical_filename FROM ' . ATTACHMENTS_TABLE . ' WHERE post_msg_id = ' . $postId . ' AND is_orphan = 0 ORDER BY attach_id ASC';
@@ -512,5 +612,62 @@ class AIController
         }
 
         return !empty($info);
+    }
+
+    /*
+      Download URL to provided file name.
+      Return boolean true| false or actual HTTP response code.
+      Check for 200 for success.
+    */
+    function urlToFile($url, $path, $headers = [], $debug = false, $timeout_secs = 120, $max_redirect = 10)
+    {
+        $curl = curl_init($url);
+
+        if (empty($curl))
+            return false;
+
+        $file = fopen($path, 'wb');
+
+        if (empty($file))
+            return false;
+
+        $curl_options = [
+            CURLOPT_FILE            => $file,
+            CURLOPT_MAXREDIRS       => $max_redirect,
+            CURLOPT_TIMEOUT         => $timeout_secs,
+            CURLOPT_FOLLOWLOCATION  => true,
+            CURLOPT_SSL_VERIFYPEER  => false,
+        ];
+
+        if (!empty($headers))
+            $curl_options[CURLOPT_HTTPHEADER] = $headers;
+
+        // Debugging cURL
+        // Look for /var/www/phpbb/curl_debug.txt
+        $out_debug = empty($debug) ? null : fopen("curl_debug.txt", 'a+');
+
+        // Debugging cURL
+        if (!empty($out_debug)) {
+            $curl_options[CURLOPT_VERBOSE] = true;
+            $curl_options[CURLOPT_STDERR] =  $out_debug;
+        }
+
+        curl_setopt_array($curl, $curl_options);
+
+        $result = curl_exec($curl);
+
+        $response_code = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+
+        curl_close($curl);
+
+        fclose($file);
+
+        // Debugging cURL
+        if (!empty($out_debug)) {
+            fwrite($out_debug, $result);
+            fclose($out_debug);
+        }
+
+        return $response_code;
     }
 }

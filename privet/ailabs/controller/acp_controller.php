@@ -35,6 +35,8 @@ class acp_controller //implements acp_interface
 	protected $tpr_ailabs;
 
 	protected $desc_contollers = [
+		'/ailabs/pika',
+		'/ailabs/claude',
 		'/ailabs/gemini',
 		'/ailabs/gemini_vision',
 		'/ailabs/chatgpt',

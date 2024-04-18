@@ -1,7 +1,7 @@
-# AI Labs v 1.0.8
+# AI Labs v 1.0.9
 
 Incorporate AI into your phpBB board and get ready for an exciting experience.  
-Currently supported Midjourney, ChatGPT and DALL-E (OpenAI), Gemini and Gemini Vision (Google), Stable Diffusion (Stability AI).  
+Currently supported Midjourney, ChatGPT and DALL-E (OpenAI), Gemini and Gemini Vision (Google), Claude (Anthropic), Stable Diffusion (Stability AI), Pika (Pika.art).  
 
 # Table of Contents
 1. [Examples](#examples)
@@ -9,29 +9,33 @@ Currently supported Midjourney, ChatGPT and DALL-E (OpenAI), Gemini and Gemini V
 3. [Important notes](#important-notes)
 4. [Installation](#installation)
 5. [Midjourney setup](#midjourney-setup)
-6. [Gemini setup ](#gemini-setup)
-6. [Gemini Vision setup ](#gemini-vision-setup)
-6. [ChatGPT setup ](#chatgpt-setup)
-7. [ChatGPT advanced setup](#chatgpt-advanced-setup)
-8. [DALL-E setup](#dall-e-setup)
-9. [DALL-E advanced features](#dall-e-advanced-features)
-10. [Stable Diffusion setup](#stable-diffusion-setup)
-11. [Troubleshooting](#troubleshooting)
-12. [Support and suggestions](#support-and-suggestions)
-13. [Changelog](#changelog)
-14. [License](#license)
+6. [Pika setup](#pika-setup)
+7. [Gemini setup ](#gemini-setup)
+8. [Gemini Vision setup ](#gemini-vision-setup)
+9. [ChatGPT setup ](#chatgpt-setup)
+10. [ChatGPT advanced setup](#chatgpt-advanced-setup)
+11. [Claude setup](#claude-setup)
+12. [Chat bots can share conversation history](#chat-bots-can-share-conversation-history)
+13. [DALL-E setup](#dall-e-setup)
+14. [DALL-E advanced features](#dall-e-advanced-features)
+15. [Stable Diffusion setup](#stable-diffusion-setup)
+16. [Troubleshooting](#troubleshooting)
+17. [Support and suggestions](#support-and-suggestions)
+18. [Changelog](#changelog)
+19. [License](#license)
 
 ## Examples
 
- - [Midjourney](https://privet-fun.translate.goog/viewtopic.php?t=3404&_x_tr_sl=auto&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp) 
+ - [Midjourney](https://privet.fun/viewtopic.php?t=2921) 
+ - [Claude](https://privet.fun/viewtopic.php?t=4165)
  - [Gemini](https://privet.fun/viewtopic.php?t=4088)  
  - [Gemini Vision](https://privet.fun/viewtopic.php?t=4089)  
  - [ChatGPT](https://privet.fun/viewtopic.php?t=2802) 
  - [ChatGPT, custom prompt](https://privet.fun/viewtopic.php?t=2799) 
  - [DALL-E](https://privet.fun/viewtopic.php?t=2800)
  - [Stable Diffusion by Stability AI](https://privet.fun/viewtopic.php?t=2801)  
- - [Stable Diffusion by Leonardo AI, coming soon 🚀](https://privet.fun/viewtopic.php?t=2605)  
-    Also available as Telegram bot https://t.me/stable_diffusion_superbot
+ - [Pika by Pika.art](https://privet.fun/viewtopic.php?t=4220)  
+ - [Telegram bot featuring Stable Diffusion by Leonardo AI](https://t.me/stable_diffusion_superbot)  
 
 ## Requirements
 * php >=7.4
@@ -40,7 +44,8 @@ Currently supported Midjourney, ChatGPT and DALL-E (OpenAI), Gemini and Gemini V
 ## Important notes
 
 * Installing of [Simple mentions phpBB extension](https://www.phpbb.com/customise/db/extension/simple_mentions/) strongly suggested.  
-  [@mention]() feature makes it really easy to talk to AI bots and other board users.
+  [@mention]() feature makes it really easy to talk to AI bots and other board users.  
+  👉 I created a small update for version 2.0 to support notifications when editing an already submitted post. Simply replace your `/ext/paul999/mention/event/main_listener.php` with the provided [main_listener.php](../privet/ailabs/docs/main_listener.php) to enable this feature.
 
 * If you are planning to use image generation AI (eg DALL-E or Stable Diffusion) make sure to adjust attachment settings to support large images and verify that `webp` image extension configured.  
 
@@ -50,7 +55,8 @@ Currently supported Midjourney, ChatGPT and DALL-E (OpenAI), Gemini and Gemini V
   Go to `ACP` > `Posting` > `Manage attachment extensions`, look for `webp`, add it if missing:  
   ![Attachment settings](../privet/ailabs/docs/attachment_webp.png)  
 
-  Above does not apply to Midjourney, as all generated images are actually stored on your Discord account and served via the Discord CDN.
+  Above does not apply to Midjourney, as all generated images are actually stored on your Discord account and served via the Discord CDN.   
+  Discord recently introduced a limit on how long CDN links will be available. You may want to copy generated images that you like locally, since CDN links will eventually expire.  
 
 * If you have extensions installed that require users to log in, such as [Login Required](https://www.phpbb.com/customise/db/extension/login_required) you will need to whitelist `/ailabs/*` and `/app.php/ailabs/*` since AI Labs extension uses callbacks.
 
@@ -73,13 +79,13 @@ Finally go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add desired AI c
 
 ## Midjourney setup 
 
-*  You'll need Midjourney Discord and useapi.net accounts with active subscriptions.   
-   Follow instructions at https://www.useapi.net/docs/start-here to setup and verify both.     
+* You'll need Midjourney Discord and useapi.net accounts with active subscriptions.   
+  Follow instructions at https://www.useapi.net/docs/start-here to setup and verify both.     
 
 * Create new board user who will act as AI bot, for our example we will use user `Midjourney`.  
   Make sure this user account is activated and fully functional.  
 
-* Got to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `midjourney` from AI dropdown:  
+* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `midjourney` from AI dropdown:  
   ![Attachment settings](../privet/ailabs/docs/midjourney_setup.png)  
   
   - Use `Load default configuration/template` to get defaults.  
@@ -90,6 +96,46 @@ Finally go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add desired AI c
   ![Attachment settings](../privet/ailabs/docs/midjourney_example.png)
 
 * Images generated by Midjourney Discord bot via useapi.net stored and served from Discord CDN.  
+  Discord recently introduced a limit on how long CDN links will be available. You may want to copy generated images that you like locally, since CDN links will eventually expire.  
+
+## Pika setup 
+
+* You'll need Pika Discord and useapi.net accounts with active subscriptions.   
+  Follow instructions at https://useapi.net/docs/start-here/setup-pika to setup and verify both.     
+
+* Add `mp4` BBCode tag, go to `ACP` > `POSTING` > `BBCodes` and add `mp4` tag as shown below:  
+  ![BBCode tag](../privet/ailabs/docs/bbcode_mp4.png)   
+  **BBCode usage**: 
+  ```text
+  [mp4]{URL}[/mp4]
+  ```
+  **HTML replacement**: 
+  ```text
+  <video src="{URL}" style="width:100%;max-width:640px" controls>Your browser does not support the video tag.</video>
+  ```
+  You can adjust above `max-width:NNNpx` to desired value.  
+  **Help line**:
+  ```text
+  [mp4]http://example.com/video.mp4[/mp4]
+  ```
+
+* Create new board user who will act as AI bot, for our example we will use user `Pika`.  
+  Make sure this user account is activated and fully functional.  
+
+* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `pika` from AI dropdown:  
+  ![Attachment settings](../privet/ailabs/docs/pika_setup.png)  
+  
+  - Use `Load default configuration/template` to get defaults.  
+    Replace Configuration JSON `api-key`, `discord` and `channel` with your values.  
+  - Select forums where you want `Pika` AI user to reply to new posts and/or to quoted and [@mention](https://www.phpbb.com/customise/db/extension/simple_mentions) (if you are using Simple mentions extension) posts. 
+
+* Save changes, navigate to forum configured above and create new post (if you configured `Reply on a post`) or quote/[@mention]() `Pika` user:  
+  ![Attachment settings](../privet/ailabs/docs/pika_example.png)
+
+* Refer to this [post](https://privet.fun/viewtopic.php?t=4220) to learn more about the currently supported Pika bot functionality.
+
+* Images generated by Pika Discord bot via useapi.net stored and served from Discord CDN.  
+  Discord recently introduced a limit on how long CDN links will be available. You may want to copy generated images that you like locally, since CDN links will eventually expire.  
 
 ## Gemini setup 
 
@@ -115,9 +161,8 @@ Finally go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add desired AI c
     E.g. `--temperature 0` or `--temperature 0.5 --topk 1 --topp 0.8` 
 
 * Additional settings used by the Gemini API:
-  - `message_tokens`, default 2048; this is the maximum size of a single user message.
-  - `max_tokens`, default 30720; this is the maximum size of the entire conversation.
-  - `prefix`, default is empty; it can be used to prompt the model.  
+  - `max_tokens`, default 30720, this is the maximum size of the entire conversation.
+  - `prefix`, default is empty, it can be used to prompt the model.  
   - `max_quote_length`, if provided, the quoted response text will be truncated to the number of words defined by the `max_quote_length` value. Set it to 0 to remove all quoted text entirely. 
 
 For an examples of how to use Gemini bot please refer to [Gemini](https://privet.fun/viewtopic.php?t=4088).
@@ -137,7 +182,7 @@ The Gemini Vision bot does not support conversations, you will need to provide a
 * Create new board user who will act as AI bot, for our example we will use user `ChatGPT`.  
   Make sure this user account is activated and fully functional.  
 
-* Got to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `chatgpt` from AI dropdown:  
+* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `chatgpt` from AI dropdown:  
   ![Attachment settings](../privet/ailabs/docs/chatgpt_setup.png)  
   
   - Use `Load default configuration/template` to get defaults.  
@@ -152,20 +197,56 @@ The Gemini Vision bot does not support conversations, you will need to provide a
   - `temperature`, `top_p`, `frequency_penalty` and `presence_penalty` - see https://platform.openai.com/docs/api-reference/chat/create
 
 * Additional setting used by ChatGPT AI 
-  - `message_tokens`, default 4096, limit maximum size of the entire conversation thread  
-  - `max_tokens`, default 1024, define size reserved for AI reply when quoted  
-  - `prefix`, default empty, can be used to prompt model  
-  - `prefix_tokens`, default 0, copy above `prefix` to https://platform.openai.com/tokenizer to get size of your `prefix` in tokens and update `prefix_tokens` with number returned by tokenizer  
+  - `max_tokens`, default 4096, define size reserved for AI reply when quoted  
+  - `prefix`, default empty, can be used to prompt model, see [ChatGPT advanced setup](#chatgpt-advanced-setup) for details  
+  - `prefix_tokens`, default 0, see [ChatGPT advanced setup](#chatgpt-advanced-setup) for details    
   - `max_quote_length`, if provided, the quoted response text will be truncated to the number of words defined by the max_quote_length value. Set it to 0 to remove all quoted text entirely.  
 
 ## ChatGPT advanced setup 
 
-You can setup ChatGPT to pretend it is somebody else.  
-Let's create new board user `Bender` and configure as shown below:  
+You can setup ChatGPT to pretend it is somebody else using param `prefix` with custom prompt (aka system prompt).  
+Let's create new board user `Bender` and configure it same as we did in [ChatGPT setup ](#chatgpt-setup).  
+We want use `prefix` and `prefix_tokens` params to fine-tune ChatGPT AI behavior so our AI bot `Bender` will provide responses like [this](https://privet.fun/viewtopic.php?t=2799), mostly staying in a character.  
+To determine what number should be placed in `prefix_tokens` let's ask our freshly created AI bot `Bender` question which we want to use for `prefix`.  
+For example below we will use for `prefix` following system prompt `Pretend your are Bender from Futurma`  
+![Request and response token count](../privet/ailabs/docs/chatgpt_setup_advanced.png)  
+Once bot replied click on log icon, and note value of `Request tokens`.  
+Finally go back to `Bender` AI bot configuration and update params `prefix` and `prefix_tokens`  
 ![Attachment settings](../privet/ailabs/docs/chatgpt_bender_example.png)  
-Notice we used `prefix` and `prefix_tokens` to fine-tune ChatGPT AI behavior.    
-Our AI bot `Bender` will provide responses like [this](https://privet.fun/viewtopic.php?t=2799), mostly staying in a character.  
+
+## Claude setup 
+
+* Please follow the Anthropic [instructions](https://docs.anthropic.com/claude/docs/getting-access-to-claude) to create and activate a Claude API key.  
+   Note the Claude API key you create, you will need it later to set up the Claude bot.  
+
+* Create a new board user who will act as the AI bot. For our example, we will use the user `Claude`.  
+  Ensure this user account is activated and fully functional.  
+
+* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add a new configuration, selecting `claude` from the AI dropdown:    
+  ![](../privet/ailabs/docs/claude_setup.png)  
   
+  - Use `Load default configuration/template` to load the defaults.  
+    Replace `<API-KEY>` in the Configuration JSON with your Claude API key.  
+  - Select the forums where you want the `Claude` AI user to reply to new posts and/or to quoted and [@mention](https://www.phpbb.com/customise/db/extension/simple_mentions) posts (if you are using the Simple Mentions extension). 
+
+* Save the changes, navigate to the forum configured above, and create a new post (if you configured `Reply on a post`) or quote/[@mention]() the `Claude` user to verify that it is working as expected. Refer to the [troubleshooting](#troubleshooting) section if you encounter any issues.
+
+* Fine-tuning can be achieved by adjusting the following Claude API configuration parameters:
+  - `model` can be found here: https://docs.anthropic.com/claude/docs/models-overview#model-recommendations.
+  - `temperature`, `max_tokens`, `system` can be found here: https://docs.anthropic.com/claude/reference/messages_post.
+    Parameter `system` is a way of providing context and instructions to Claude, such as specifying a particular goal or role, see guide to [system prompts](https://docs.anthropic.com/claude/docs/system-prompts). If specified you will need to add number of tokens used by system prompt to `system_token` value to ensure correct token count. You can follow instructions for [ChatGPT advanced setup](#chatgpt-advanced-setup) to calculate `system_token` value.  
+    Users can override `temperature` parameter by providing a hint in the message using the `--temperature value` notation, e.g. `--temperature 0` or `--temperature 0.5` 
+
+* Additional settings used by the Gemini API:
+  - `max_quote_length`, if provided, the quoted response text will be truncated to the number of words defined by the `max_quote_length` value. Set it to 0 to remove all quoted text entirely. 
+
+## Chat bots can share conversation history
+
+AI chat bots (ChatGPT, Gemini and Claude) can now share each other's conversation history and context.  
+You can start chatting with one AI chat bot and later on in the conversation tag another bot(s).  
+Tagged bots will automatically inherit the entire conversation history and context.  
+Please see [example](https://privet.fun/viewtopic.php?t=4221).
+
 ## DALL-E setup 
 
 Setup mostly the same as for ChatGPT above:  
@@ -194,24 +275,35 @@ Refer to https://platform.openai.com/docs/api-reference/images/create to learn m
 * Refer to https://api.stability.ai/docs#tag/v1generation/operation/textToImage to learn more about configuration JSON parameters.  
 
 ## Troubleshooting
-AI Labs extension maintains internal logs, you should have admin or moderator rights to see log icon:  
-![Attachment settings](../privet/ailabs/docs/debugging_post_icon.png)  
+* AI Labs extension maintains internal logs, you should have admin or moderator rights to see log icon  
+  ![Attachment settings](../privet/ailabs/docs/debugging_post_icon.png)  
 
-You can see entire AI communication history in the log:  
-![Attachment settings](../privet/ailabs/docs/debugging_log.png)  
-If Log entry is empty it usually means that `/ailabs/*` or `/app.php/ailabs/*` routes blocked by one of phpBB extensions (eg <a href="https://www.phpbb.com/customise/db/extension/login_required">Login Required</a>) and you will need to add `/ailabs/*` or `/app.php/ailabs/*` to extension whitelist.  
-You can examine Log `response` (JSON) to see details for AI response.  
-Please feel free to post your questions or concerns at https://github.com/privet-fun/phpbb_ailabs/issues.
+  You can see entire AI communication history in the log:  
+  ![Attachment settings](../privet/ailabs/docs/debugging_log.png)  
+  If Log entry is empty it usually means that `/ailabs/*` or `/app.php/ailabs/*` routes blocked by one of phpBB extensions (eg <a href="https://www.phpbb.com/customise/db/extension/login_required">Login Required</a>) and you will need to add `/ailabs/*` or `/app.php/ailabs/*` to extension whitelist.  
+  You can examine Log `response` (JSON) to see details for AI response.  
+  Please feel free to post your questions or concerns at https://github.com/privet-fun/phpbb_ailabs/issues.
 
-When setting up your bot, you will be able to test the bot URL by referring to the `Bot URL (test)` link below:
-![](../privet/ailabs/docs/gemini_setup.png)  
-If you do not see the bot response `Processing job 0`, you will need to investigate what is preventing access to that URL.
+* When setting up your bot, you will be able to test the bot URL by referring to the `Bot URL (test)` link below    
+  ![](../privet/ailabs/docs/gemini_setup.png)  
+  If you do not see the bot response `Processing job 0`, you will need to investigate what is preventing access to that URL, your web server logs will be good place to start.
+
+* You can enable cURL communication logging by adding the `"debug": true` parameter to your bot configuration. The AI Labs extension uses cURL to communicate with AI APIs. By enabling logging, you should be able to see the entire data exchange between the extension and the AI APIs. Look for `/var/www/phpbb/curl_debug.txt` (or similar) for log content.
+  ![Attachment settings](../privet/ailabs/docs/config_debug.png) 
 
 ## Support and suggestions
 
 This extension is currently being actively developed. For communication, please use https://github.com/privet-fun/phpbb_ailabs/issues.
 
 ## Changelog 
+
+* 1.0.9 April 17, 2024
+  - Added support for [Pika by Pika.art](#pika-setup) AI text/text+image to video bot
+  - Added support for [Claude by Anthropic](#claude-setup)
+  - AI chat bots (ChatGPT, Gemini and Claude) can now share each other's conversation history and context [example](https://privet.fun/viewtopic.php?t=4221)
+  - The [troubleshooting](#troubleshooting) features have been greatly extended
+  - You can edit the original conversation after it has been posted and add more `@mention` AI bot tags if you missed them [example](https://privet.fun/viewtopic.php?t=4222)
+  - Created small update for [Simple mentions phpBB extension](https://www.phpbb.com/customise/db/extension/simple_mentions/) version 2.0 to support notifications when editing an already submitted post. Refer to [Important notes](#important-notes) for details
 
 * 1.0.8 March 10, 2024
   - Added support for Gemini and Gemini Vision by Google 

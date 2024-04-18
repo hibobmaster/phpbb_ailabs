@@ -89,6 +89,7 @@ class dalle extends GenericController
     protected function submit($opts): resultSubmit
     {
         $api = new GenericCurl($this->cfg->api_key);
+        $api->debug = $this->debug;
         $this->cfg->api_key = null;
 
         $result = new resultSubmit();

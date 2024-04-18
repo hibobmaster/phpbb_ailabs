@@ -12,6 +12,7 @@
 namespace privet\ailabs\event;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use privet\ailabs\includes\RequestHelper;
 
 class listener implements EventSubscriberInterface
 {
@@ -63,7 +64,21 @@ class listener implements EventSubscriberInterface
             'core.viewtopic_post_rowset_data'       => 'viewtopic_post_rowset_data',
             'core.viewtopic_modify_post_row'        => 'viewtopic_modify_post_row',
             'core.user_setup'                       => 'load_language_on_setup',
+            'core.submit_post_modify_sql_data'      => 'submit_post_modify_sql_data'
         );
+    }
+
+    public function submit_post_modify_sql_data($event)
+    {
+        if (in_array($event['post_mode'], ['post', 'reply', 'quote'])) {
+
+            $sql_data = $event['sql_data'];
+
+            if (empty($sql_data[POSTS_TABLE]['sql']['post_ailabs_data'])) {
+                $sql_data[POSTS_TABLE]['sql']['post_ailabs_data'] = '';
+                $event['sql_data'] = $sql_data;
+            }
+        }
     }
 
     /**
@@ -92,8 +107,9 @@ class listener implements EventSubscriberInterface
     {
         $mode = $event['mode'];
 
-        // Only for new topics and posts with mention (quote/reply/@mention) to AI Labs user posts
-        if (!in_array($mode, ['post', 'reply', 'quote'])) {
+        // Only for new topics and posts with mention (quote/reply/@mention) to AI Labs user posts        
+        // Allow user to edit post and @mention AI bot 
+        if (!in_array($mode, ['post', 'reply', 'quote', 'edit'])) {
             return false;
         }
 
@@ -107,19 +123,26 @@ class listener implements EventSubscriberInterface
 
         $post_id = $event['data']['post_id'];
 
-        $ailabs_users_notified = $this->ailabs_users_notified($post_id);
+        $configured_ai_users = [];
+        $mention_ai_users = [];
+
+        $ailabs_users_notified = $this->ailabs_users_notified($post_id, $configured_ai_users);
 
         $ailabs_users = array();
 
         foreach ($ailabs_users_forum as $user) {
-            if ($mode == 'post' && $user['post'] == 1) {
+            if ($mode == 'post' && $user['post']) {
                 array_push($ailabs_users, $user);
+                array_push($mention_ai_users, $user);
             } else {
-                if ($mode == 'reply' && $user['reply'] == 1) {
+                if ($mode == 'reply' && $user['reply']) {
                     array_push($ailabs_users, $user);
+                    array_push($mention_ai_users, $user);
                 } else {
-                    if ($user['mention'] == 1 && in_array($user['user_id'], $ailabs_users_notified))
+                    if ($user['mention'] && in_array($user['user_id'], $ailabs_users_notified))
                         array_push($ailabs_users, $user);
+                    if ($user['mention'] && in_array($user['user_id'], $configured_ai_users))
+                        array_push($mention_ai_users, $user);
                 }
             }
         }
@@ -135,7 +158,7 @@ class listener implements EventSubscriberInterface
         $request = $message_parser->message;
 
         // Remove all mentioned AI user names from request
-        foreach ($ailabs_users as $user) {
+        foreach ($mention_ai_users as $user) {
             $userName = $user['username'];
             $count = 0;
             // v 2.x uses smention tag with user id inside: [smeniton u=user_id]user_name[/smention]
@@ -159,7 +182,7 @@ class listener implements EventSubscriberInterface
         // Replace size tags
         $request = preg_replace(array('/\[size=[0-9]+\]/', '/\[\/size\]/'), array('', ''), $request);
 
-        // Remove leading and trailing spaces as well as all doublespaces
+        // Remove leading and trailing spaces as well as all double spaces
         $request = trim(str_replace('  ', ' ', $request));
 
         // utf8_encode_ucr added in phpBB v3.2.7 
@@ -168,38 +191,8 @@ class listener implements EventSubscriberInterface
             $request = utf8_encode_ucr($request);
         }
 
-        global $config;
-
-        $cookie_name = $config['cookie_name'];
-        $headers = [];
-
-        $copy_headers = ['X-Forwarded-For', 'User-Agent'];
-        foreach ($copy_headers as $header_name) {
-            if (!empty($this->request->header($header_name))) {
-                array_push($headers, "$header_name: " . $this->request->header($header_name));
-            }
-        }
-
-        $cookies = [];
-        if ($this->request->is_set($cookie_name . '_sid', \phpbb\request\request_interface::COOKIE) || $this->request->is_set($cookie_name . '_u', \phpbb\request\request_interface::COOKIE)) {
-            array_push($cookies, $cookie_name . '_u=' . $this->request->variable($cookie_name . '_u', 0, false, \phpbb\request\request_interface::COOKIE));
-            array_push($cookies, $cookie_name . '_k=' . $this->request->variable($cookie_name . '_k', '', false, \phpbb\request\request_interface::COOKIE));
-            array_push($cookies, $cookie_name . '_sid=' . $this->request->variable($cookie_name . '_sid', '', false, \phpbb\request\request_interface::COOKIE));
-
-            array_push($headers, "Cookie: " . implode('; ', $cookies));
-        }
-
-        $context = null;
-        if (!empty($headers)) {
-            $context = stream_context_create(
-                array(
-                    'http' => array(
-                        'method' => "HEAD",
-                        'header' => implode("\r\n", $headers)
-                    )
-                )
-            );
-        }
+        $requestHelper = new RequestHelper($this->request);
+        $context = $requestHelper->streamContextCreate("HEAD");
 
         // https://area51.phpbb.com/docs/dev/master/db/dbal.html
         foreach ($ailabs_users as $user) {
@@ -236,18 +229,14 @@ class listener implements EventSubscriberInterface
         $where = [
             'post_id' => $data['post_id']
         ];
-
-        $set = [
-            'post_ailabs_data' => json_encode(array(
-                'job_id' => $data['job_id'],
-                'ailabs_user_id' => $data['ailabs_user_id'],
-                'ailabs_username' => $data['ailabs_username'],
-            )) . ','
-        ];
-
-        $sql = 'UPDATE ' . POSTS_TABLE .
-            ' SET ' . $this->db->sql_build_array('UPDATE', $set) .
-            ' WHERE ' . $this->db->sql_build_array('SELECT', $where);
+        $data = array(
+            'job_id' => $data['job_id'],
+            'ailabs_user_id' => $data['ailabs_user_id'],
+            'ailabs_username' => $data['ailabs_username'],
+        );
+        $set =  '\'' . json_encode($data) . ',\'';
+        $concat = $this->db->sql_concatenate('post_ailabs_data', $set);
+        $sql = 'UPDATE ' . POSTS_TABLE . ' SET post_ailabs_data = ' . $concat . ' WHERE ' . $this->db->sql_build_array('SELECT', $where);
         $result = $this->db->sql_query($sql);
         $this->db->sql_freeresult($result);
     }
@@ -261,9 +250,9 @@ class listener implements EventSubscriberInterface
     {
         $return = array();
         $sql = 'SELECT c.user_id, ' .
-            '(c.forums_post LIKE \'%"' . $id . '"%\' OR c.forums_post LIKE \'%"ALL"%\') as post, ' .
-            '(c.forums_reply LIKE \'%"' . $id . '"%\' OR c.forums_reply LIKE \'%"ALL"%\') as reply, ' .
-            '(c.forums_mention LIKE \'%"' . $id . '"%\' OR c.forums_mention LIKE \'%"ALL"%\') as mention, ' .
+            'c.forums_post, ' .
+            'c.forums_reply, ' .
+            'c.forums_mention, ' .
             'c.controller, ' .
             'u.username ' .
             'FROM ' . $this->users_table . ' c ' .
@@ -274,9 +263,9 @@ class listener implements EventSubscriberInterface
             array_push($return, array(
                 'user_id' => $row['user_id'],
                 'username' => $row['username'],
-                'post' => $row['post'],
-                'reply' => $row['reply'],
-                'mention' => $row['mention'],
+                'post' => strpos($row['forums_post'], '"' . $id . '"') !== false || strpos($row['forums_post'], '"ALL"') !== false,
+                'reply' => strpos($row['forums_reply'], '"' . $id . '"') !== false || strpos($row['forums_reply'], '"ALL"') !== false,
+                'mention' => strpos($row['forums_mention'], '"' . $id . '"') !== false || strpos($row['forums_mention'], '"ALL"') !== false,
                 'controller' => $row['controller']
             ));
         }
@@ -285,19 +274,24 @@ class listener implements EventSubscriberInterface
     }
 
     /**
-     * Check if any of ailabs user notified in this post
+     * Check if any of ailabs user notified in this post.
+     * Exclude users which already have job.
      * @param int $post_id
-     * @return array of notified ailabs users
+     * @return array of notified ailabs users (without jobs)
      */
-    private function ailabs_users_notified($post_id)
+    private function ailabs_users_notified($post_id, &$configured_users = [])
     {
         $return = array();
-        $sql = 'SELECT c.user_id FROM ' . $this->users_table . ' c ' .
-            'JOIN ' . NOTIFICATIONS_TABLE . ' n  ON n.user_id = c.user_id ' .
-            'WHERE c.enabled = 1 AND n.item_id = ' . (int) $post_id;
+        $sql = 'SELECT c.user_id AS user_id, COUNT(j.job_id) AS cnt FROM ' . $this->users_table . ' c ' .
+            ' JOIN ' . NOTIFICATIONS_TABLE . ' n  ON n.user_id = c.user_id AND n.item_id = ' . (int) $post_id .
+            ' LEFT JOIN ' . $this->jobs_table . ' j  ON j.ailabs_user_id = c.user_id AND j.post_id = ' . (int) $post_id .
+            ' WHERE c.enabled = 1 ' .
+            ' GROUP BY c.user_id';
         $result = $this->db->sql_query($sql);
         while ($row = $this->db->sql_fetchrow($result)) {
-            array_push($return, $row['user_id']);
+            array_push($configured_users, $row['user_id']);
+            if ($row['cnt'] == 0)
+                array_push($return, $row['user_id']);
         }
         $this->db->sql_freeresult($result);
         return $return;

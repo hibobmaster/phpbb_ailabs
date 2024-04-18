@@ -15,6 +15,7 @@ use privet\ailabs\includes\GenericCurl;
 use privet\ailabs\includes\GenericController;
 use privet\ailabs\includes\resultSubmit;
 use privet\ailabs\includes\resultParse;
+use privet\ailabs\includes\RequestHelper;
 
 /*
 
@@ -57,13 +58,17 @@ template
 
 class gemini_vision extends GenericController
 {
+    protected $tmpfile = null;
     protected $settings;
 
     protected function prepare($opts)
     {
+        // Remove leading new lines and empty spaces 
+        $request = preg_replace('/^[\r\n\s]+/', '', $this->job['request']);
+        // Adjust quotes 
+        $request = str_replace(['&quot;', '&amp;'], ['"', '&'], $request);
         // Remove all BBCodes
-        $text = $this->job['request'];
-        $text = preg_replace('/\[(.*?)=?.*?\](.*?)\[\/\\1\]/i', '$2', $text);
+        $request = preg_replace('/\[(.*?)=?.*?\](.*?)\[\/\\1\]/i', '$2', $request);
 
         // Check for attachments first
         $fileContent = $this->load_first_attachment($this->job['post_id']);
@@ -72,56 +77,43 @@ class gemini_vision extends GenericController
         if ($fileContent == false) {
             $url_pattern = '/\bhttps?:\/\/[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|\/))/i';
 
-            preg_match($url_pattern, $text, $urls);
+            preg_match($url_pattern, $request, $urls);
 
             if (isset($urls[0])) {
-                $text = str_replace($urls[0], '', $text);
+                $url = $urls[0];
 
-                $this->log['url'] = $urls[0];
-                $this->log['board_url'] = generate_board_url();
+                // Remove URL from the post (request) text
+                $request = str_replace($url, '', $request);
 
-                $context = null;
+                $this->log['url'] = $url;
+                $this->log['url_board'] = generate_board_url();
 
-                // If link is pointing to board download URL attempt to pass user's cookie 
-                if (stripos($urls[0], generate_board_url()) === 0) {
-                    $cookie_name = $this->config['cookie_name'];
-                    $headers = [];
+                $headers = null;
 
-                    $copy_headers = ['X-Forwarded-For', 'User-Agent'];
-                    foreach ($copy_headers as $header_name) {
-                        if (!empty($this->request->header($header_name))) {
-                            array_push($headers, "$header_name: " . $this->request->header($header_name));
-                        }
-                    }
-
-                    $cookies = [];
-
-                    if ($this->request->is_set($cookie_name . '_sid', \phpbb\request\request_interface::COOKIE) || $this->request->is_set($cookie_name . '_u', \phpbb\request\request_interface::COOKIE)) {
-                        array_push($cookies, $cookie_name . '_u=' . $this->request->variable($cookie_name . '_u', 0, false, \phpbb\request\request_interface::COOKIE));
-                        array_push($cookies, $cookie_name . '_k=' . $this->request->variable($cookie_name . '_k', '', false, \phpbb\request\request_interface::COOKIE));
-                        array_push($cookies, $cookie_name . '_sid=' . $this->request->variable($cookie_name . '_sid', '', false, \phpbb\request\request_interface::COOKIE));
-
-                        array_push($headers, "Cookie: " . implode('; ', $cookies));
-
-                        $this->log['cookie'] = $cookie_name;
-                    }
-
-                    if (!empty($headers)) {
-                        $context = stream_context_create(
-                            array(
-                                'http' => array(
-                                    'method' => "GET",
-                                    'header' => implode("\r\n", $headers)
-                                )
-                            )
-                        );
-                    }
+                // If link is pointing to board download URL attempt to pass user's session cookie 
+                if (stripos($url, generate_board_url()) === 0) {
+                    $requestHelper = new RequestHelper($this->request);
+                    $requestHelper->streamContextCreate("GET", $headers);
+                    if (!empty($headers))
+                        $this->log['url_headers'] = $headers;
                 }
 
-                $fileContent = file_get_contents($urls[0], false, $context);
+                $this->tmpfile = tmpfile();
+                $temp_filename = stream_get_meta_data($this->tmpfile)['uri'];
+                $url_result = $this->urlToFile($url, $temp_filename, $headers, $this->debug);
 
-                if ($fileContent == false)
-                    $opts = ['error_message' => $this->language->lang('AILABS_ERROR_UNABLE_DOWNLOAD_URL') . $urls[0]];
+                // HTTP OK
+                if ($url_result == 200) {
+                    $fileContent = file_get_contents($temp_filename);
+                    $this->log['url_temp_filename'] = $temp_filename;
+                    $this->log['url_temp_filename_size'] = filesize($temp_filename);
+                } else {
+                    $this->log['url_error'] = $url_result;
+                    $opts = [
+                        'error_message' => $this->language->lang('AILABS_ERROR_UNABLE_DOWNLOAD_URL') . $url .
+                            (is_numeric($url_result) && ($url_result != 0) ? ' ( HTTP ' . $url_result . ' )' : '')
+                    ];
+                }
             } else {
                 $opts = ['error_message' => $this->language->lang('AILABS_ERROR_PROVIDE_URL')];
             }
@@ -148,18 +140,18 @@ class gemini_vision extends GenericController
             // Extract settings provided by user
             $configuration = (array) json_decode(json_encode($this->cfg->generation_config));
 
-            if ($this->extract_numeric_settings($text, ['temperature' => 'temperature', "topk" => "topK", "topp" => "topP"], $configuration, $info)) {
+            if ($this->extract_numeric_settings($request, ['temperature' => 'temperature', "topk" => "topK", "topp" => "topP"], $configuration, $info)) {
                 $this->log['generation_config_override'] = $info;
                 $this->settings = $info;
             }
 
-            $this->log['text'] = $text;
+            $this->log['text'] = $request;
 
             $opts = [
                 'contents' =>
                 [[
                     'parts' => [
-                        ['text' => $text],
+                        ['text' => $request],
                         [
                             'inline_data' => [
                                 'mime_type' => 'image/jpeg',
@@ -185,6 +177,7 @@ class gemini_vision extends GenericController
 
         if (!empty($opts['contents'])) {
             $api = new GenericCurl();
+            $api->debug = $this->debug;
 
             // https://ai.google.dev/tutorials/rest_quickstart
             $result->response =  $api->sendRequest($this->cfg->url_generateContent, 'POST', $opts);
@@ -200,6 +193,7 @@ class gemini_vision extends GenericController
     protected function parse(resultSubmit $resultSubmit): resultParse
     {
         /*
+        HTTP 200
         {
             "candidates": [
                 {
@@ -254,6 +248,15 @@ class gemini_vision extends GenericController
                 ]
             }
         }
+
+        HTTP 400
+        {
+            "error": {
+            "code": 400,
+            "message": "Request payload size exceeds the limit: 4194304 bytes.",
+            "status": "INVALID_ARGUMENT"
+            }
+        }
         */
 
         $this->job['status'] = 'fail';
@@ -266,9 +269,15 @@ class gemini_vision extends GenericController
             !empty($json->error_message) ||
             !in_array(200, $resultSubmit->responseCodes)
         ) {
-            if (!empty($json->error_message)) {
-                $message = '[color=#FF0000]' . $json->error_message . '[/color]';
-            }
+            $responseCode = '';
+            if (isset($resultSubmit->responseCodes) && !empty($resultSubmit->responseCodes))
+                $responseCode = ' (' . reset($resultSubmit->responseCodes) . ')';
+
+            if (!empty($json->error_message))
+                $message = '[color=#FF0000]' . $json->error_message . $responseCode . '[/color]';
+
+            if (!empty($json->error) && !empty($json->error->message))
+                $message = '[color=#FF0000]' . $json->error->message . $responseCode . '[/color]';
         } else {
             if (
                 empty($json->candidates) ||

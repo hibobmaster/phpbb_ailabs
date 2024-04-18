@@ -56,7 +56,7 @@ $lang = array_merge($lang, [
 	'LBL_AILABS_BOT_URL_EXPLAIN'	=> 'Нажмите на URL справа, откроется новое окно браузера с ответом "Processing job 0". <a href="https://github.com/privet-fun/phpbb_ailabs?tab=readme-ov-file#troubleshooting" target="_blank" rel="nofollow">Документация</a>',
 
 	'LBL_AILABS_CONFIG_EXPLAIN'				=> 'Пожалуйста, обратитесь к документации для получения подробных инструкций по настройке и примеров',
-	'LBL_AILABS_TEMPLATE_EXPLAIN'			=> 'Допустимые переменные: {post_id}, {request}, {info}, {response}, {images}, {attachments}, {poster_id}, {poster_name}, {ailabs_username}, {settings}',
+	'LBL_AILABS_TEMPLATE_EXPLAIN'			=> 'Допустимые переменные: {post_id}, {request}, {info}, {response}, {images}, {mp4}, {attachments}, {poster_id}, {poster_name}, {ailabs_username}, {settings}',
 	'LBL_AILABS_POST_FORUMS_EXPLAIN'		=> 'Укажите форумы, на которых AI будет отвечать на новые темы',
 	'LBL_AILABS_REPLY_FORUMS_EXPLAIN'		=> 'Укажите форумы, на которых AI будет отвечать на ответы',
 	'LBL_AILABS_QUOTE_FORUMS_EXPLAIN'		=> 'Укажите форумы, на которых AI будет отвечать на цитируемые сообщения или <a href="https://www.phpbb.com/customise/db/extension/simple_mentions/" target="_blank" rel="nofollow">упоминания</a>',

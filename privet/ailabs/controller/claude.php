@@ -21,17 +21,17 @@ use privet\ailabs\includes\resultParse;
 config (example)
 
 {
-    "api_key": "<API_KEY>",
-    "url_chat": "https://api.openai.com/v1/chat/completions",
-    "model": "gpt-3.5-turbo",
-    "temperature": 0.9,
-    "max_tokens": 4096,
-    "top_p": 1,
-    "frequency_penalty": 0,
-    "presence_penalty": 0.6,
-    "prefix": "This is optional field you can remove it or populate with something like this -> Pretend your are Bender from Futurma",
-    "prefix_tokens": 16
-    "max_quote_length": 10
+  "url_messages": "https://api.anthropic.com/v1/messages",
+  "url_headers": {
+    "x-api-key": "<API_KEY>",
+    "anthropic-version": "2023-06-01"
+  },
+  "model": "claude-3-sonnet-20240229",
+  "max_tokens": 2048,
+  "system": "",
+  "system_tokens": 0,
+  "temperature": 1.0,
+  "max_quote_length": 10,
 }
 
 template
@@ -41,11 +41,11 @@ template
 
 */
 
-class chatgpt extends AIController
+class claude extends AIController
 {
-    // https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
-    // By default, the number of tokens the model can return will be (4096 - prompt tokens).
-    protected $max_tokens = 4096;
+    // https://docs.anthropic.com/claude/reference/messages_post
+    // By default, the number of tokens the model can return will be (2048 - prompt tokens).
+    protected $max_tokens = 2048;
     protected $settings_override;
 
     protected function process()
@@ -64,12 +64,9 @@ class chatgpt extends AIController
             $this->max_tokens = (int)$this->cfg->max_tokens;
         }
 
-        $prefix_tokens = empty($this->cfg->prefix_tokens) ? 0 : $this->cfg->prefix_tokens;
+        $system_tokens = empty($this->cfg->system_tokens) ? 0 : $this->cfg->system_tokens;
 
-        $api_key = $this->cfg->api_key;
-        $this->cfg->api_key = null;
-
-        $api = new GenericCurl($api_key);
+        $api = new GenericCurl($this->cfg->url_headers);
         $api->debug = $this->debug;
 
         $this->job['status'] = 'fail';
@@ -111,29 +108,23 @@ class chatgpt extends AIController
 
         $request_text = trim($this->job['request']);
 
-        $request_text = trim($this->job['request']);
-
         // Extract settings provided by user
         $configuration = ['temperature' => (float) $this->cfg->temperature];
 
         if ($this->extract_numeric_settings($request_text, ['temperature' => 'temperature'], $configuration, $this->settings_override))
-            $this->log['settings_override'] = $this->settings_override;        
+            $this->log['settings_override'] = $this->settings_override;
 
         $content[] =  ['role' => 'user', 'content' => $request_text];
 
-        if (!empty($this->cfg->prefix))
-            array_unshift(
-                $content,
-                ['role' => 'system', 'content' => $this->cfg->prefix]
-            );
-
         $request_json = [
-            'model'             => $this->cfg->model,
+            'model'             => (string) $this->cfg->model,
             'messages'          => $content,
             'temperature'       => (float) $configuration["temperature"],
-            'frequency_penalty' => (float) $this->cfg->frequency_penalty,
-            'presence_penalty'  => (float)$this->cfg->presence_penalty,
+            'max_tokens'        => (int) $this->cfg->max_tokens
         ];
+
+        if (!empty($this->cfg->system))
+            $request_json["system"] = $this->cfg->system;
 
         $this->log['request.json'] = $request_json;
         $this->log_flush();
@@ -142,28 +133,38 @@ class chatgpt extends AIController
         $response_tokens = 0;
 
         try {
-            // https://api.openai.com/v1/chat/completions
-            $api_result = $api->sendRequest($this->cfg->url_chat, 'POST', $request_json);
+            // https://docs.anthropic.com/claude/reference/messages_post
+            $api_result = $api->sendRequest($this->cfg->url_messages, 'POST', $request_json);
 
             /*
-                Response example:
+                Response example 200:
                 {
-                    'id': 'chatcmpl-1p2RTPYSDSRi0xRviKjjilqrWU5Vr',
-                    'object': 'chat.completion',
-                    'created': 1677649420,
-                    'model': 'gpt-3.5-turbo',
-                    'usage': {'prompt_tokens': 56, 'completion_tokens': 31, 'total_tokens': 87},
-                    'choices': [
+                    "id": "msg_018gCsTGsXkYJVqYPxTgDHBU",
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [
                         {
-                            'message': {
-                                'role': 'assistant',
-                                'content': 'The 2020 World Series was played in Arlington, Texas at the Globe Life Field, which was the new home stadium for the Texas Rangers.'
-                            },
-                            'finish_reason': 'stop',
-                            'index': 0
+                            "type": "text",
+                            "text": "Sure, I'd be happy to provide..."
                         }
-                    ]
+                    ],
+                    "stop_reason": "end_turn",
+                    "stop_sequence": null,
+                    "usage": {
+                    "input_tokens": 30,
+                    "output_tokens": 309
+                    }
                 }
+
+                Response example 4xx, 5xx:
+                {
+                "type": "error",
+                "error": {
+                    "type": "not_found_error",
+                    "message": "The requested resource could not be found."
+                }
+                }
+
             */
 
             $json = json_decode($api_result);
@@ -173,20 +174,21 @@ class chatgpt extends AIController
             $this->log_flush();
 
             if (
-                empty($json->object) ||
-                empty($json->choices) ||
-                strpos($json->object, 'chat.completion') === false ||
+                empty($json->content) ||
+                empty($json->content[0]->text) ||
                 !in_array(200, $api->responseCodes)
             ) {
+                if (!empty($json->error) && !empty($json->error->message))
+                    $response = '[color=#FF0000]' . $json->error->message . '[/color]';
             } else {
                 $this->job['status'] = 'ok';
-                $api_response = $json->choices[0]->message->content;
+                $api_response = $json->content[0]->text;
                 $response = $api_response;
-                $request_tokens = $json->usage->prompt_tokens;
-                $response_tokens = $json->usage->completion_tokens;
-                if ($history_tokens > 0 || $prefix_tokens > 0) {
+                $request_tokens = $json->usage->input_tokens;
+                $response_tokens = $json->usage->output_tokens;
+                if ($history_tokens > 0 || $system_tokens > 0) {
                     $this->log['request.tokens.raw'] = $request_tokens;
-                    $request_tokens = $request_tokens - $history_tokens - $prefix_tokens;
+                    $request_tokens = $request_tokens - $history_tokens - $system_tokens;
                     $this->log['request.tokens.adjusted'] = $request_tokens;
                 }
             }

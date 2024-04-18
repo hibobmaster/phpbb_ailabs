@@ -1,3 +1,22 @@
+privet_ailabs_pika_page:
+    path: /ailabs/pika
+    defaults: { _controller: privet.ailabs.controller_pika:execute }
+
+privet_ailabs_pika_callback:
+    path: /ailabs/pika/callback/{job_id}/{ref}/{action}
+    methods: [POST]
+    defaults: 
+        _controller: privet.ailabs.controller_pika:callback 
+        mode: 'post'
+    requirements:
+        job_id: \d+
+        ref: "[a-zA-Z0-9]+"
+        action: posted|reply    
+
+privet_ailabs_claude_page:
+    path: /ailabs/claude
+    defaults: { _controller: privet.ailabs.controller_claude:execute }
+
 privet_ailabs_gemini_page:
     path: /ailabs/gemini
     defaults: { _controller: privet.ailabs.controller_gemini:execute }

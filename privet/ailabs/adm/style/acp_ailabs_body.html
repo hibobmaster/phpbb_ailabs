@@ -43,10 +43,18 @@
 
 	<script type="text/javascript">
 		const defaultConfigs = {
+			"pika": {
+				"url_create": "https://api.useapi.net/v1/pika/create",
+				"api_key": "<API_KEY>",
+				"discord": "your-discord-token",
+				"channel": "your-discord-channel-id",
+				"maxJobs": 10,
+				"retryCount": 80,
+				"timeoutBeforeRetrySec": 15
+			},			
 			"midjourney": {
 				"url_imagine": "https://api.useapi.net/v2/jobs/imagine",
-				"url_button": "https://api.useapi.net/v2/jobs/button",
-				"api_key": "your-useapi.net-key-goes-here",
+				"api_key": "<API_KEY>",
 				"discord": "your-discord-token",
 				"server": "your-discord-server-id",
 				"channel": "your-discord-channel-id",
@@ -54,11 +62,23 @@
 				"retryCount": 80,
 				"timeoutBeforeRetrySec": 15
 			},
+			"claude": {
+				"url_messages": "https://api.anthropic.com/v1/messages",
+				"url_headers": {
+					"x-api-key": "<API_KEY>",
+					"anthropic-version": "2023-06-01"
+				},
+				"model": "claude-3-sonnet-20240229",
+				"max_tokens": 2048,
+				"system": "",
+				"system_tokens": 0,
+				"temperature": 1.0,
+				"max_quote_length": 10
+			},			
 			"gemini": {
 				"url_generateContent": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro-latest:generateContent?key=<API_KEY>",
 				"url_countTokens": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro-latest:countTokens?key=<API_KEY>",
 				"max_tokens": 30720,
-				"message_tokens": 2048,
 				"max_quote_length": 10,
 				"prefix": "",
 				"safety_settings": [
@@ -115,11 +135,10 @@
 			},
 			"chatgpt": {
 				"url_chat": "https://api.openai.com/v1/chat/completions",
-				"api_key": "your-openai-api-key-goes-here",
+				"api_key": "<API_KEY>",
 				"model": "gpt-3.5-turbo",
 				"temperature": 0.9,
 				"max_tokens": 4096,
-				"message_tokens": 1024,
 				"top_p": 1,
 				"frequency_penalty": 0,
 				"presence_penalty": 0.6,
@@ -130,14 +149,14 @@
 			"dalle": {
 				"url_generations": "https://api.openai.com/v1/images/generations",
 				"url_variations": "https://api.openai.com/v1/images/variations",
-				"api_key": "your-openai-api-key-goes-here",
+				"api_key": "<API_KEY>",
 				"n": 3,
 				"size": "512x512",
 				"response_format": "b64_json"
 			},
 			"stablediffusion": {
 				"url_texttoimage": "https://api.stability.ai/v1/generation/stable-diffusion-xl-beta-v2-2-2/text-to-image",
-				"api_key": "your-stablityai-api-key-goes-here",
+				"api_key": "<API_KEY>",
 				"cfg_scale": 7.5,
 				"clip_guidance_preset": "FAST_BLUE",
 				"height": 512,
@@ -154,17 +173,21 @@
 		}
 
 		const defaultTemplate = {
+			"pika": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\n\{response\}\n\{mp4\}\n\{info\}",
 			"midjourney": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\n\{response\}\n\{images\}\n\{info\}",
+			"claude": "\{info\}[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\n\{settings\}",
 			"gemini": "\{info\}[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\n\{settings\}",
 			"gemini_vision": "\{info\}[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\n\{settings\}",
-			"chatgpt": "\{info\}[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}",
+			"chatgpt": "\{info\}[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\n\{settings\}",
 			"dalle": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\{attachments\}",
 			"stablediffusion": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\{attachments\}",
 			"scriptexecute": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\{attachments\}"
 		}
 
 		const urlAPIDocs = {
+			"pika": "https://useapi.net/docs/start-here/setup-pika",
 			"midjourney": "https://useapi.net/docs/start-here/setup-midjourney",
+			"claude": "https://docs.anthropic.com/claude/reference/messages_post",
 			"gemini": "https://ai.google.dev/tutorials/rest_quickstart",
 			"gemini_vision": "https://ai.google.dev/tutorials/rest_quickstart",
 			"chatgpt": "https://platform.openai.com/docs/api-reference/chat/create",

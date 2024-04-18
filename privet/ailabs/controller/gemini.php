@@ -26,7 +26,6 @@ config (example)
     "url_generateContent": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro-latest:generateContent?key=<API_KEY>",
     "url_countTokens": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro-latest:countTokens?key=<API_KEY>",
  	"max_tokens": 30720,
-	"message_tokens": 2048,
 	"max_quote_length": 10,
     "prefix": "Answer all my questions pretending you are a pirate.",
     "safety_settings": [
@@ -59,6 +58,7 @@ config (example)
 template
 
 {info}[quote={poster_name} post_id={post_id} user_id={poster_id}]{request}[/quote]{response}
+{settings}
 
 */
 
@@ -83,8 +83,7 @@ class gemini extends AIController
     }
     */
     protected $max_tokens = 30720;
-    protected $message_tokens = 2048;
-    protected $settings;
+    protected $settings_override;
 
     protected function process()
     {
@@ -98,116 +97,48 @@ class gemini extends AIController
         $this->job_update($set);
         $this->post_update($this->job);
 
-        if (!empty($this->cfg->message_tokens)) {
-            $this->message_tokens = $this->cfg->message_tokens;
-        }
-
         if (!empty($this->cfg->max_tokens)) {
             $this->max_tokens = (int)$this->cfg->max_tokens;
         }
 
         $api = new GenericCurl();
+        $api->debug = $this->debug;
 
         $this->job['status'] = 'fail';
         $response = $this->language->lang('AILABS_ERROR_CHECK_LOGS');
-        $api_response = null;
-        $request_tokens = null;
-        $response_tokens = null;
 
-        $contents = [];
+        $api_response = null;
+
         $info = null;
-        $posts = [];
+        $content = [];
         $post_first_taken = null;
         $post_first_discarded = null;
 
-        $history = ['post_text' =>  $this->job['post_text']];
+        $history = $this->retrieve_history($this->max_tokens);
+        $history_count = 0;
+        $history_tokens = 0;
 
-        $pattern = '/<QUOTE\sauthor="' . $this->job['ailabs_username'] . '"\spost_id="(.*)"\stime="(.*)"\suser_id="' . $this->job['ailabs_user_id'] . '">/';
-
-        $this->log['history.pattern'] = $pattern;
+        $this->log['history'] = $history;
         $this->log_flush();
 
-        // Attempt to unwind history using quoted posts
-        $history_tokens = 0;
-        $round = -1;
-        do {
-            $round++;
-            $matches = null;
-            preg_match_all(
-                $pattern,
-                $history['post_text'],
-                $matches
-            );
+        if (!empty($history)) {
+            foreach ($history as $key => $value) {
 
-            $history = null;
-
-            if ($matches != null && !empty($matches) && !empty($matches[1][0])) {
-                $postid = (int) $matches[1][0];
-
-                $sql = 'SELECT j.job_id, j.post_id, j.response_post_id, j.request, j.response, p.post_text, p.post_time, j.request_tokens, j.response_tokens ' .
-                    'FROM ' . $this->jobs_table . ' j ' .
-                    'JOIN ' . POSTS_TABLE . ' p ON p.post_id = j.post_id ' .
-                    'WHERE ' . $this->db->sql_build_array('SELECT', ['response_post_id' => $postid]);
-                $result = $this->db->sql_query($sql);
-                $history = $this->db->sql_fetchrow($result);
-                $this->db->sql_freeresult($result);
-
-                if (!empty($history)) {
-                    $count_tokens = $history['request_tokens'] + $history['response_tokens'];
-
-                    $discard = $this->max_tokens < ($this->message_tokens + $history_tokens + $count_tokens);
-
-                    $posts[] = [
-                        'postid'                => $postid,
-                        'request_tokens'        => $history['request_tokens'],
-                        'response_tokens'       => $history['response_tokens'],
-                        'running_total_tokens'  => $history_tokens + $count_tokens,
-                        'discard'               => $discard
-                    ];
-
-                    if ($discard) {
-                        $post_first_discarded = $postid;
-                        break;
-                    }
-
-                    $post_first_taken = $postid;
-                    $history_tokens += $count_tokens;
-
-                    $history_decoded_request = utf8_decode_ncr($history['request']);
-                    $history_decoded_response = utf8_decode_ncr($history['response']);
-
-                    array_unshift(
-                        $contents,
-                        ['role' => 'user', 'parts' => [['text' => trim($history_decoded_request)]]],
-                        ['role' => 'model', 'parts' => [['text' => trim($history_decoded_response)]]]
-                    );
-
-                    if ($round == 0) {
-                        // Remove quoted content from the quoted post
-                        $post_text = sprintf(
-                            '<r><QUOTE author="%1$s" post_id="%2$s" time="%3$s" user_id="%4$s"><s>[quote=%1$s post_id=%2$s time=%3$s user_id=%4$s]</s>%6$s<e>[/quote]</e></QUOTE>%5$s</r>',
-                            $this->job['ailabs_username'],
-                            (string) $postid,
-                            (string) $this->job['post_time'],
-                            (string) $this->job['ailabs_user_id'],
-                            $this->job['request'],
-                            property_exists($this->cfg, 'max_quote_length') ?
-                                $this->trim_words($history_decoded_response, (int) $this->cfg->max_quote_length) : $history_decoded_response
-                        );
-
-                        $sql = 'UPDATE ' . POSTS_TABLE .
-                            ' SET ' . $this->db->sql_build_array('UPDATE', ['post_text' => utf8_encode_ucr($post_text)]) .
-                            ' WHERE post_id = ' . (int) $this->job['post_id'];
-                        $result = $this->db->sql_query($sql);
-                        $this->db->sql_freeresult($result);
-                    }
+                if ($value['discard']) {
+                    $post_first_discarded = $value['postid'];
+                    break;
                 }
-            }
-        } while (!empty($history));
 
-        if (!empty($posts)) {
-            $this->log['history.posts'] = $posts;
-            $this->log_flush();
+                $history_count++;
+                $post_first_taken = $value['postid'];
+                $history_tokens += ($value['request_tokens'] + $value['response_tokens']);
+
+                array_unshift(
+                    $content,
+                    ['role' => 'user', 'parts' => [['text' => $value['request']]]],
+                    ['role' => 'model', 'parts' => [['text' => $value['response']]]]
+                );
+            }
         }
 
         $request_text = trim($this->job['request']);
@@ -215,15 +146,16 @@ class gemini extends AIController
         // Extract settings provided by user
         $configuration = (array) json_decode(json_encode($this->cfg->generation_config));
 
-        if ($this->extract_numeric_settings($request_text, ['temperature' => 'temperature', "topk" => "topK", "topp" => "topP"], $configuration, $this->settings))
-            $this->log['generation_config_override'] = $this->settings;
+        if ($this->extract_numeric_settings($request_text, ['temperature' => 'temperature', "topk" => "topK", "topp" => "topP"], $configuration, $this->settings_override))
+            $this->log['settings_override'] = $this->settings_override;
 
-        $request_tokens = $this->countTokens($request_text, 'request.request_tokens');
-
-        $contents[] =  ['role' => 'user', 'parts' => [['text' => $request_text]]];
+        $content[] =  ['role' => 'user', 'parts' => [['text' => $request_text]]];
 
         if (!empty($this->cfg->prefix))
-            array_unshift($contents[0]['parts'], ['text' => $this->cfg->prefix]);
+            array_unshift(
+                $content[0]['parts'],
+                ['text' => $this->cfg->prefix]
+            );
 
         /*
             https://ai.google.dev/tutorials/rest_quickstart
@@ -286,13 +218,16 @@ class gemini extends AIController
         */
 
         $request_json =  [
-            'contents'          => $contents,
+            'contents'          => $content,
             'safety_settings'   => $this->cfg->safety_settings,
             'generation_config' => $configuration
         ];
 
         $this->log['request.json'] = $request_json;
         $this->log_flush();
+
+        $request_tokens = $this->countTokens($request_text, 'request.request_tokens');
+        $response_tokens = 0;
 
         try {
             // https://ai.google.dev/tutorials/rest_quickstart
@@ -370,7 +305,7 @@ class gemini extends AIController
                 empty($json->candidates[0]->content->parts[0]->text)
             ) {
                 if (!empty($json->candidates) && !empty($json->candidates[0]->finishReason))
-                    $response = '[color=#FF0000]Gemini  Finish Reason: ' . $json->candidates[0]->finishReason . '[/color]';
+                    $response = '[color=#FF0000]' . $json->candidates[0]->finishReason . '[/color]';
             } else {
                 $this->job['status'] = 'ok';
                 $api_response = $json->candidates[0]->content->parts[0]->text;
@@ -384,14 +319,14 @@ class gemini extends AIController
 
         $this->log['finish'] = date('Y-m-d H:i:s');
 
-        if (!empty($posts)) {
+        if ($history_count > 0) {
             $viewtopic = "{$this->root_path}viewtopic.{$this->php_ext}";
             $discarded = '';
             if ($post_first_discarded != null) {
                 $discarded = $this->language->lang('AILABS_POSTS_DISCARDED', $viewtopic, $post_first_discarded);
             }
-            $total_posts_count = count($posts) * 2 + 2;
-            $total_tokens_used_count = $request_tokens + $response_tokens;
+            $total_posts_count = $history_count * 2 + 2;
+            $total_tokens_used_count = $history_tokens + $request_tokens + $response_tokens;
             $info = $this->language->lang(
                 'AILABS_DISCARDED_INFO',
                 $viewtopic,
@@ -406,7 +341,7 @@ class gemini extends AIController
         $resultParse = new resultParse();
         $resultParse->message = $response;
         $resultParse->info = $info;
-        $resultParse->settings = empty($this->settings) ? $this->settings : $this->language->lang('AILABS_SETTINGS_OVERRIDE', $this->settings);
+        $resultParse->settings = empty($this->settings_override) ? $this->settings_override : $this->language->lang('AILABS_SETTINGS_OVERRIDE', $this->settings_override);
 
         $response = $this->replace_vars($this->job, $resultParse);
 
@@ -435,6 +370,7 @@ class gemini extends AIController
     protected function countTokens($text, $info)
     {
         $curl = new GenericCurl();
+        $curl->debug = $this->debug;
         try {
             /*
                 https://ai.google.dev/tutorials/rest_quickstart
