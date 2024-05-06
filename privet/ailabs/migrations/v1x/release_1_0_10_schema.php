@@ -11,7 +11,7 @@
 
 namespace privet\ailabs\migrations\v1x;
 
-class release_1_0_9_schema extends \phpbb\db\migration\migration
+class release_1_0_10_schema extends \phpbb\db\migration\migration
 {
 	static public function depends_on()
 	{
