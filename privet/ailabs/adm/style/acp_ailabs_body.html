@@ -51,7 +51,7 @@
 				"maxJobs": 10,
 				"retryCount": 80,
 				"timeoutBeforeRetrySec": 15
-			},			
+			},
 			"midjourney": {
 				"url_imagine": "https://api.useapi.net/v2/jobs/imagine",
 				"api_key": "<API_KEY>",
@@ -74,7 +74,7 @@
 				"system_tokens": 0,
 				"temperature": 1.0,
 				"max_quote_length": 10
-			},			
+			},
 			"gemini": {
 				"url_generateContent": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro-latest:generateContent?key=<API_KEY>",
 				"url_countTokens": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro-latest:countTokens?key=<API_KEY>",
@@ -169,6 +169,10 @@
 					"script": "app-to-execute",
 					"logs": "/var/logs/app-folder",
 				}
+			},
+			"discord_cdn": {
+				"tokens": ["required_discord_token_a", "optional_discord_token_b", "optional_discord_token_c"],
+				"channels": ["allowed_channel_id1", "allowed_channel_id2", "allowed_channel_id3"]
 			}
 		}
 
@@ -181,7 +185,8 @@
 			"chatgpt": "\{info\}[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\n\{settings\}",
 			"dalle": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\{attachments\}",
 			"stablediffusion": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\{attachments\}",
-			"scriptexecute": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\{attachments\}"
+			"scriptexecute": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\{attachments\}",
+			"discord_cdn": "not used"
 		}
 
 		const urlAPIDocs = {
@@ -193,7 +198,8 @@
 			"chatgpt": "https://platform.openai.com/docs/api-reference/chat/create",
 			"dalle": "https://platform.openai.com/docs/api-reference/images/create",
 			"stablediffusion": "https://platform.stability.ai/docs/api-reference#tag/v1generation/operation/textToImage",
-			"scriptexecute": "https://github.com/privet-fun/phpbb_ailabs"
+			"scriptexecute": "https://github.com/privet-fun/phpbb_ailabs",
+			"discord_cdn": "https://github.com/privet-fun/phpbb_ailabs?tab=readme-ov-file#discord-cdn-smart-proxy-setup"
 		}
 
 		function doDefault(id, config, isJSON) {
@@ -300,7 +306,8 @@
 		<dl>
 			<dt>
 				<label for="ailabs_controller">{{ lang('LBL_AILABS_CONTROLLER') ~ lang('COLON') }}</label>
-				<br><a id="ailabs_bot_url_help" target="_blank" href="https://link" onclick="event.preventDefault(); openAPIDocURL()">{{
+				<br><a id="ailabs_bot_url_help" target="_blank" href="https://link"
+					onclick="event.preventDefault(); openAPIDocURL()">{{
 					lang('LBL_AILABS_API_DOCS') }}</a>
 			</dt>
 			<dd>

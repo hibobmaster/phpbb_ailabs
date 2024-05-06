@@ -43,7 +43,8 @@ class acp_controller //implements acp_interface
 		'/ailabs/dalle',
 		'/ailabs/stablediffusion',
 		'/ailabs/midjourney',
-		'/ailabs/scriptexecute'
+		'/ailabs/scriptexecute',
+		discord_cdn::ailabs_discord_cdn_controller
 	];
 
 	public function __construct(
@@ -156,6 +157,11 @@ class acp_controller //implements acp_interface
 
 					trigger_error($this->language->lang('ACP_AILABS_UPDATED') . adm_back_link($this->u_action), E_USER_NOTICE);
 				}
+
+				if($data['controller'] == discord_cdn::ailabs_discord_cdn_controller) {
+					global $cache;
+					$cache->destroy(discord_cdn::ailabs_discord_config);
+				}
 			}
 		} else {
 			if ($this->action == 'edit') {
@@ -172,9 +178,11 @@ class acp_controller //implements acp_interface
 					'ailabs_forums_post'	=> (string) $row['forums_post'],
 					'ailabs_forums_reply'	=> (string) $row['forums_reply'],
 					'ailabs_forums_mention'	=> (string) $row['forums_mention'],
-					'ailabs_enabled'		=> (bool) $row['enabled'],
-					'ailabs_bot_url'		=> (string) append_sid(generate_board_url() . $row['controller'], ['job_id' => 0], true, $this->user->session_id)
+					'ailabs_enabled'		=> (bool) $row['enabled']
 				];
+
+				if ($row['controller'] !== discord_cdn::ailabs_discord_cdn_controller)
+					$edit['ailabs_bot_url']		= (string) append_sid(generate_board_url() . $row['controller'], ['job_id' => 0], true, $this->user->session_id);
 
 				$this->db->sql_freeresult($result);
 			}

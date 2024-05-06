@@ -143,8 +143,7 @@ class pika extends GenericController
             // Only attach successfully generated images, seems like all other images will be deleted from Discord CDN
             if (($this->job['status'] == 'ok') && !empty($json['attachments'])) {
                 $url_adjusted = (string) $json['attachments'][0]['url'];
-                // Do not remove Discord params
-                // $url_adjusted = preg_replace('/\?.*$/', '', $url_adjusted);
+                $url_adjusted = discord_cdn::cdn($url_adjusted);
                 $resultParse->mp4 = array($url_adjusted);
             }
 
