@@ -137,12 +137,13 @@ class dalle extends GenericController
             foreach ($json->data as $item) {
                 // Image name returned back by Open AI API in url is not always can be parsed by internal phpBB routines.
                 // Use b64_json instead
-                if ($this->cfg->response_format == 'url') {
-                    array_push($images, $item->url);
-                } else {
+                if ($this->cfg->response_format == 'b64_json') {
                     $filename = $this->save_base64_to_temp_file($item->b64_json, $ind);
                     $item->b64_json = '<redacted>';
                     array_push($images, $filename);
+                    
+                } else {
+                    array_push($images, $item->url);
                 }
                 $ind++;
             }
