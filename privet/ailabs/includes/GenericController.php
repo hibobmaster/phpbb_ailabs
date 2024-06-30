@@ -60,6 +60,17 @@ class GenericController extends AIController
         return $result;
     }
 
+    public function removeKeysRecursively(&$array, $keysToRemove) {
+        foreach ($array as $key => &$value) {
+            if (in_array($key, $keysToRemove)) {
+                unset($array[$key]);
+            } elseif (is_array($value)) {
+                // If the value is an array, apply the function recursively
+                $this->removeKeysRecursively($value, $keysToRemove);
+            }
+        }
+    }
+
     // Override this method to extract response image(s)/message(s) and set job status
     protected function parse(resultSubmit $resultSubmit): resultParse
     {
@@ -77,9 +88,7 @@ class GenericController extends AIController
 
         $optsCloned = json_decode(json_encode($opts), true);
 
-        foreach ($this->redactOpts as $key) {
-            unset($optsCloned[$key]);
-        }
+        $this->removeKeysRecursively($optsCloned, $this->redactOpts);
 
         $this->log['request.json'] = $optsCloned;
         $this->log_flush();

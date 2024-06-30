@@ -1,43 +1,51 @@
-# AI Labs v 1.0.10
+# AI Labs v 2.0.0 <!-- omit from toc -->
+
 
 Incorporate AI into your phpBB board and get ready for an exciting experience.  
-Currently supported Midjourney, ChatGPT and DALL-E (OpenAI), Gemini and Gemini Vision (Google), Claude (Anthropic), Stable Diffusion (Stability AI), Pika (Pika.art).  
+Currently supported Midjourney, ChatGPT and DALL-E (OpenAI), Gemini and Gemini Vision (Google), Claude (Anthropic), Stable Diffusion v2/v3 (Stability AI), Pika (Pika.art), PixVerse (PixVerse.ai), FaceSwap (Picsi.Ai).  
 
-# Table of Contents
-1. [Examples](#examples)
-2. [Requirements](#requirements)
-3. [Important notes](#important-notes)
-4. [Installation](#installation)
-5. [Midjourney setup](#midjourney-setup)
-6. [Pika setup](#pika-setup)
-7. [Discord CDN smart proxy setup](#discord-cdn-smart-proxy-setup)
-8. [Gemini setup ](#gemini-setup)
-9. [Gemini Vision setup ](#gemini-vision-setup)
-10. [ChatGPT setup ](#chatgpt-setup)
-11. [ChatGPT advanced setup](#chatgpt-advanced-setup)
-12. [Claude setup](#claude-setup)
-13. [Chat bots can share conversation history](#chat-bots-can-share-conversation-history)
-14. [DALL-E setup](#dall-e-setup)
-15. [DALL-E advanced features](#dall-e-advanced-features)
-16. [Stable Diffusion setup](#stable-diffusion-setup)
-17. [Troubleshooting](#troubleshooting)
-18. [Support and suggestions](#support-and-suggestions)
-19. [Changelog](#changelog)
-20. [License](#license)
+- [Examples](#examples)
+- [Requirements](#requirements)
+- [Important notes](#important-notes)
+- [Installation](#installation)
+- [BBCode `mp4` tag](#bbcode-mp4-tag)
+- [Discord CDN smart proxy setup](#discord-cdn-smart-proxy-setup)
+- [Midjourney setup](#midjourney-setup)
+- [FaceSwap setup](#faceswap-setup)
+- [Pika setup](#pika-setup)
+- [PixVerse setup](#pixverse-setup)
+- [PixVerse\_MemeFace setup](#pixverse_memeface-setup)
+- [ChatGPT setup](#chatgpt-setup)
+- [ChatGPT advanced setup](#chatgpt-advanced-setup)
+- [Claude setup](#claude-setup)
+- [Gemini setup](#gemini-setup)
+- [Gemini Vision setup](#gemini-vision-setup)
+- [Chat bots can share conversation history](#chat-bots-can-share-conversation-history)
+- [DALL-E setup](#dall-e-setup)
+- [DALL-E advanced features](#dall-e-advanced-features)
+- [Stable Diffusion v3 setup](#stable-diffusion-v3-setup)
+- [Stable Diffusion v2 setup](#stable-diffusion-v2-setup)
+- [Troubleshooting](#troubleshooting)
+- [Support and suggestions](#support-and-suggestions)
+- [Changelog](#changelog)
+- [License](#license)
 
 ## Examples
 
- - [Midjourney](https://privet.fun/viewtopic.php?t=2921) 
- - [Claude](https://privet.fun/viewtopic.php?t=4165)
- - [Gemini](https://privet.fun/viewtopic.php?t=4088)  
- - [Gemini Vision](https://privet.fun/viewtopic.php?t=4089)  
- - [ChatGPT](https://privet.fun/viewtopic.php?t=2802) 
+ - [Midjourney](https://privet.fun/viewtopic.php?t=4530) 
+ - [FaceSwap by Picsi.Ai](https://privet.fun/viewtopic.php?t=4521)
+ - [Pika • AI text/text+image to video by Pika.art](https://privet.fun/viewtopic.php?t=4220)  
+ - [PixVerse • AI text/text+image to video by PixVerse.ai](https://privet.fun/viewtopic.php?t=4522)  
+ - [PixVerse_MemeFace • AI text+image to video by PixVerse.ai](https://privet.fun/viewtopic.php?t=4523)  
+ - [ChatGPT](https://privet.fun/viewtopic.php?t=4528) 
  - [ChatGPT, custom prompt](https://privet.fun/viewtopic.php?t=2799) 
- - [DALL-E](https://privet.fun/viewtopic.php?t=2800)
- - [Stable Diffusion by Stability AI](https://privet.fun/viewtopic.php?t=2801)  
- - [Pika by Pika.art](https://privet.fun/viewtopic.php?t=4220)  
- - [Telegram bot featuring Stable Diffusion by Leonardo AI](https://t.me/stable_diffusion_superbot)  
-
+ - [Claude](https://privet.fun/viewtopic.php?t=4527)
+ - [Gemini](https://privet.fun/viewtopic.php?t=4525)  
+ - [Gemini Vision](https://privet.fun/viewtopic.php?t=4089)  
+ - [DALL-E](https://privet.fun/viewtopic.php?t=4529)
+ - [Stable Diffusion v3 by Stability AI](https://privet.fun/viewtopic.php?t=4520)
+ - [Stable Diffusion v2 by Stability AI](https://privet.fun/viewtopic.php?t=2801)  
+ 
 ## Requirements
 * php >=7.4
 * phpbb >= 3.2
@@ -56,7 +64,7 @@ Currently supported Midjourney, ChatGPT and DALL-E (OpenAI), Gemini and Gemini V
   Go to `ACP` > `Posting` > `Manage attachment extensions`, look for `webp`, add it if missing:  
   ![Attachment settings](../privet/ailabs/docs/attachment_webp.png)  
 
-  Above does not apply to Midjourney, as all generated images are actually stored on your Discord account and served via the [Discord CDN smart proxy](#discord-cdn-smart-proxy-setup).
+  Above does not apply to Discord AI bots (eg Midjourney), as all generated images are actually stored on your Discord account and served via the [Discord CDN smart proxy](#discord-cdn-smart-proxy-setup).
 
 * If you have extensions installed that require users to log in, such as [Login Required](https://www.phpbb.com/customise/db/extension/login_required) you will need to whitelist `/ailabs/*` and `/app.php/ailabs/*` since AI Labs extension uses callbacks.
 
@@ -70,39 +78,23 @@ Currently supported Midjourney, ChatGPT and DALL-E (OpenAI), Gemini and Gemini V
 Download https://github.com/privet-fun/phpbb_ailabs and copy `/privet/ailabs` to `phppp/ext` folder:  
 ![Attachment settings](../privet/ailabs/docs/ext_location.png) 
 
+**IMPORTANT**  
 If you have a previous version of this extension installed, you will need to disable it and then enable it again after the new version has been copied over.  
+Do not forget to purge the cache after the new version has been installed.   
 
 Go to `ACP` > `Customise` > `Manage extensions` and enable the `AI Labs` extension.
 
 Finally go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add desired AI configurations:  
 ![Attachment settings](../privet/ailabs/docs/ailabs_settings.png) 
 
-## Midjourney setup 
+## BBCode `mp4` tag
 
-* You'll need Midjourney Discord and useapi.net accounts with active subscriptions.   
-  Follow instructions at https://www.useapi.net/docs/start-here to setup and verify both.     
+The following Discord AI bots are generating `mp4` videos and will require adding the `[mp4]` BBCode tag:  
+* [Pika](#pika-setup)
+* [PixVerse](#pixverse-setup)
+* [PixVerse\_MemeFace](#pixverse_memeface-setup)  
 
-* Create new board user who will act as AI bot, for our example we will use user `Midjourney`.  
-  Make sure this user account is activated and fully functional.  
-
-* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `midjourney` from AI dropdown:  
-  ![Attachment settings](../privet/ailabs/docs/midjourney_setup.png)  
-  
-  - Use `Load default configuration/template` to get defaults.  
-    Replace Configuration JSON `api-key`, `discord`, `server` and `channel` with your values.  
-  - Select forums where you want `Midjourney` AI user to reply to new posts and/or to quoted and [@mention](https://www.phpbb.com/customise/db/extension/simple_mentions) (if you are using Simple mentions extension) posts. 
-
-* Save changes, navigate to forum configured above and create new post (if you configured `Reply on a post`) or quote/[@mention]() `Midjourney` user:  
-  ![Attachment settings](../privet/ailabs/docs/midjourney_example.png)
-
-* You **MUST** configure the [Discord CDN smart proxy](#discord-cdn-smart-proxy-setup) so that the generated images become visible on your board.
-
-## Pika setup 
-
-* You'll need Pika Discord and useapi.net accounts with active subscriptions.   
-  Follow instructions at https://useapi.net/docs/start-here/setup-pika to setup and verify both.     
-
-* Add `mp4` BBCode tag, go to `ACP` > `POSTING` > `BBCodes` and add `mp4` tag as shown below:  
+To add `mp4` BBCode tag, go to `ACP` > `POSTING` > `BBCodes` and add `mp4` tag as shown below:  
   ![BBCode tag](../privet/ailabs/docs/bbcode_mp4.png)   
   **BBCode usage**: 
   ```text
@@ -118,28 +110,19 @@ Finally go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add desired AI c
   [mp4]http://example.com/video.mp4[/mp4]
   ```
 
-* Create new board user who will act as AI bot, for our example we will use user `Pika`.  
-  Make sure this user account is activated and fully functional.  
-
-* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `pika` from AI dropdown:  
-  ![Attachment settings](../privet/ailabs/docs/pika_setup.png)  
-  
-  - Use `Load default configuration/template` to get defaults.  
-    Replace Configuration JSON `api-key`, `discord` and `channel` with your values.  
-  - Select forums where you want `Pika` AI user to reply to new posts and/or to quoted and [@mention](https://www.phpbb.com/customise/db/extension/simple_mentions) (if you are using Simple mentions extension) posts. 
-
-* Save changes, navigate to forum configured above and create new post (if you configured `Reply on a post`) or quote/[@mention]() `Pika` user:  
-  ![Attachment settings](../privet/ailabs/docs/pika_example.png)
-
-* Refer to this [post](https://privet.fun/viewtopic.php?t=4220) to learn more about the currently supported Pika bot functionality.
-
-* You **MUST** configure the [Discord CDN smart proxy](#discord-cdn-smart-proxy-setup) so that the generated mp4 media become visible on your board.
-
 ## Discord CDN smart proxy setup
 
 Discord CDN attachments have an expiration time, as seen in this [original announcement screenshot](https://privet.fun/download/file.php?id=21760).
-To allow users to access media generated by [Midjourney](#midjourney-setup) and [Pika](#pika-setup) AI bots, you need to set up a Discord CDN smart proxy.
-For that you will need Discord token(s), the ones used by Midjourney or Pika will suffice. In fact, you can use any Discord account to obtain a token since Discord does not check or enforce any security validations. All you need is an active Discord account and a Discord token for that account - see how to  [obtain Discord token](https://useapi.net/docs/start-here/setup-midjourney#obtain-discord-token). You may configure multiple Discord tokens to spread the load and avoid Discord 429 response codes. However, this is a theoretical safety measure as I have yet to encounter a 429 code, even with a single Discord account. It appears that Discord does not throttle attachment refresh API calls at this point.
+To allow users to access media generated by Discord AI bots you need to set up a Discord CDN smart proxy.
+
+Currently following Discord AI bots supported by this plugin via API provided by [useapi.net](https://useapi.net):
+* [Midjourney](#midjourney-setup)
+* [FaceSwap](#faceswap-setup)
+* [Pika](#pika-setup)
+* [PixVerse](#pixverse-setup)
+* [PixVerse\_MemeFace](#pixverse_memeface-setup)
+
+You will need at least one Discord token(s) from any of above Discord AI bots. In fact, you can use any Discord account to obtain a token since Discord does not check or enforce any security validations. All you need is an active Discord account and a Discord token for that account - see how to  [obtain Discord token](https://useapi.net/docs/start-here/setup-midjourney#obtain-discord-token). You may configure multiple Discord tokens to spread the load and avoid Discord 429 response codes. However, this is a theoretical safety measure as I have yet to encounter a 429 response for this particular use case, even with a single Discord account. It appears that Discord does not throttle attachment refresh API calls at this point.
 
 Discord attachments use one of the following formats:
 * https://cdn.discordapp.com/attachments/`channel`/`message`/`attachment_file_name`.`file_ext`?ex=`expire_date`&is=`issued_on`&hm=`check_sum`
@@ -147,7 +130,7 @@ Discord attachments use one of the following formats:
 
 Where `expire_date` and `issued_on` values are unix/epoch hex timestamps, here's [convertor](https://www.epochconverter.io/hex-timestamp-converter) to human-readable format.  
 
-[Midjourney](#midjourney-setup) and [Pika](#pika-setup) AI bots will convert the original attachment links as follows:
+All Discord AI bots provided by this extension will convert the original attachment links as follows:
 * `your_website_root_url`/ailabs/discord_cdn/cdn.discordapp.com/attachments/`channel`/`message`/`attachment_file_name`?ext=`file_ext`&ex=`expire_date`&is=`issued_on`&hm=`check_sum`
 * `your_website_root_url`/ailabs/discord_cdn/media.discordapp.net/attachments/`channel`/`message`/`attachment_file_name`?ext=`file_ext`&ex=`expire_date`&is=`issued_on`&hm=`check_sum`
 
@@ -159,12 +142,12 @@ Configuration steps:
 * Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `discord_cdn` from AI dropdown:  
   ![Attachment settings](../privet/ailabs/docs/discord_cdn_smart_proxy_setup.png) 
   - Use `Load default configuration/template` to get defaults.  
-    Replace Configuration JSON `required_discord_token_a` with Discord token used by [Midjourney](#midjourney-setup) and [Pika](#pika-setup) AI bots or by any other active Discord token.  
+    Replace Configuration JSON `required_discord_token_a` with Discord token used by any of configured Discord AI bots or by any other active Discord token.  
     Optionally you can add more Discord tokens, see `optional_discord_token_b` and `optional_discord_token_c` or delete both `optional_discord_token_...` if you're not planing to use them.  
-  - Update the `channels` array to include Discord channels from which you want to proxy Discord CDN attachment links. These should be the same Discord channels as the ones configured for the [Midjourney](#midjourney-setup) and [Pika](#pika-setup) AI bots and any other channels you optionally want to add. The `channels` array acts as a security measure to prevent third parties from using your proxy for their own needs.
+  - Update the `channels` array to include Discord channels from which you want to proxy Discord CDN attachment links. These should be the same Discord channels as the ones configured for your Discord AI bots and any other channels you optionally want to add. The `channels` array acts as a security measure to prevent third parties from using your proxy for their own needs.
   - Specify `ALL` for Quote or mention, this is not really used.
 
-To verify that your setup is working ask the [Midjourney](#midjourney-setup) or [Pika](#pika-setup) AI bot to generate something.   
+To verify that your setup is working ask the [Midjourney](#midjourney-setup) or any other configured Discord AI bot to generate something.   
 Alternatively you can take a valid Discord CDN link and paste it to you browser as `your_website_root_url`/ailabs/discord_cdn/cdn.discordapp.com/attachments/`channel`/`message`/`attachment_file_name`?ext=`file_ext`, if Discord CDN smart proxy is configured properly it will refresh new then link and redirect your browser to that link.
 
 If you had a version of this extension installed prior to v1.0.10, you likely already have expired Discord CDN links. Below are handy SQL statements to update your MySQL/MariaDB database to use the Discord CDN smart proxy link format. Run them one at a time and please make sure to take a backup before you make any changes.
@@ -191,43 +174,135 @@ SET post_text = REGEXP_REPLACE(post_text,
                                '<your_website_root_url>/ailabs/discord_cdn/cdn.discordapp.com/attachments/\\1/\\2/\\3?ext=\\4&amp;ex=')
 WHERE post_text LIKE "%https://cdn.discordapp.com/attachments/%"
 ```
-## Gemini setup 
 
-* Please follow the Google [instructions](https://ai.google.dev/tutorials/rest_quickstart) to create and activate a Gemini API key in Google AI Studio.  
-   Note the Gemini API key you create, you will need it later to set up the Gemini and Gemini Vision bots.  
+## Midjourney setup 
 
-* Create a new board user who will act as the AI bot; for our example, we will use the user `Gemini`.  
-  Ensure this user account is activated and fully functional.  
+* ✔️ Midjourney [tutorial and examples](https://privet.fun/viewtopic.php?t=4530).    
 
-* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add a new configuration, selecting `gemini` from the AI dropdown:    
-  ![](../privet/ailabs/docs/gemini_setup.png)  
+* You'll need [Midjourney](https://useapi.net/docs/start-here/setup-midjourney) Discord and [useapi.net](https://useapi.net/docs/start-here/setup-useapi) accounts with active useapi.net [subscription](https://useapi.net/docs/subscription).     
+
+* Create new board user who will act as AI bot, for our example we will use user `Midjourney`.  
+  Make sure this user account is activated and fully functional.  
+
+* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `midjourney` from AI dropdown:  
+  ![Attachment settings](../privet/ailabs/docs/midjourney_setup.png)  
   
-  - Use `Load default configuration/template` to load the defaults.  
-    Replace `<API-KEY>` in the Configuration JSON with your Gemini API key.  
-  - Select the forums where you want the `Gemini` AI user to reply to new posts and/or to quoted and [@mention](https://www.phpbb.com/customise/db/extension/simple_mentions) posts (if you are using the Simple Mentions extension). 
+  - Use `Load default configuration/template` to get defaults.  
+    Replace Configuration JSON `api-key`, `discord`, `server` and `channel` with your values. 
+    If you explicitly configured your [Midjourney useapi.net account](https://useapi.net/docs/api-v2/post-account-midjourney-channel) you do not need to specify the `discord`, `server` and `channel` values and can delete them from the configuration. 
+  - Select forums where you want `Midjourney` AI user to reply to new posts and/or to quoted and [@mention](https://www.phpbb.com/customise/db/extension/simple_mentions) (if you are using Simple mentions extension) posts. 
 
-* Save the changes, navigate to the forum configured above, and create a new post (if you configured `Reply on a post`) or quote/[@mention]() the `Gemini` user to verify that it is working as expected. Refer to the [troubleshooting](#troubleshooting) section if you encounter any issues.
+* Save changes, navigate to forum configured above and create new post (if you configured `Reply on a post`) or quote/[@mention]() `Midjourney` user:  
+  ![Attachment settings](../privet/ailabs/docs/midjourney_example.png)
 
-* Fine-tuning can be achieved by adjusting the following Gemini API configuration parameters:
-  - `model` can be found here: https://ai.google.dev/models/gemini#model-versions, `model` is part of `url_generateContent` and `url_countTokens`.
-  - `temperature`, `topK`, `topP` can be found here: https://ai.google.dev/docs/concepts#model_parameters, these should be placed in the `generation_config` node.
-    Users can override the above parameters by providing a hint in the message using the `--param value` notation, where `--param` is case-insensitive.
-    E.g. `--temperature 0` or `--temperature 0.5 --topk 1 --topp 0.8` 
+* You **MUST** configure the [Discord CDN smart proxy](#discord-cdn-smart-proxy-setup) so that the generated images become visible on your board.
 
-* Additional settings used by the Gemini API:
-  - `max_tokens`, default 30720, this is the maximum size of the entire conversation.
-  - `prefix`, default is empty, it can be used to prompt the model.  
-  - `max_quote_length`, if provided, the quoted response text will be truncated to the number of words defined by the `max_quote_length` value. Set it to 0 to remove all quoted text entirely. 
+## FaceSwap setup 
 
-For an examples of how to use Gemini bot please refer to [Gemini](https://privet.fun/viewtopic.php?t=4088).
+* ✔️ FaceSwap [tutorial and examples](https://privet.fun/viewtopic.php?t=4521).    
 
-## Gemini Vision setup 
+* You'll need [InsightFaceSwap](https://useapi.net/docs/start-here/setup-faceswap) Discord and [useapi.net](https://useapi.net/docs/start-here/setup-useapi) accounts with active useapi.net [subscription](https://useapi.net/docs/subscription).    
+  InsightFaceSwap Discord bot offers free and paid [subscription](https://www.patreon.com/picsi/posts) models.   
+  If you're planning to use the free version, you may want to consider adding a second account since the free version comes with only 50 credits per day. Based on your usage, you may run out of free credits. Refer to useapi.net [instructions](https://useapi.net/docs/api-faceswap-v1/setup-multiple-faceswap-accounts) on how to set up multiple InsightFaceSwap accounts.  
 
-The setup for Gemini Vision follows the same steps as the above-mentioned Gemini bot. You will need to create a separate board user, e.g. `GeminiVision` and select `gemini_vision` from the AI dropdown.
+* Create new board user who will act as AI bot, for our example we will use user `FaceSwap`.  
+  Make sure this user account is activated and fully functional.  
 
-The Gemini Vision bot does not support conversations, you will need to provide a prompt along with an image every time. You can attach an image to the post or provide an image URL directly in the prompt. For an examples of how to use Gemini Vision bot please refer to [Gemini Vision](https://privet.fun/viewtopic.php?t=4089).
+* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `faceswap` from AI dropdown:  
+  ![Attachment settings](../privet/ailabs/docs/faceswap_setup.png)  
+  
+  - Use `Load default configuration/template` to get defaults.  
+    Replace Configuration JSON `api-key` and `channel` with your values.
+    If you explicitly configured your [InsightFaceSwap useapi.net account](https://useapi.net/docs/api-faceswap-v1/post-faceswap-account-channel) you do not need to specify `channel` value and can delete it from the configuration. 
+  
+  - Select forums where you want `FaceSwap` AI user to reply to new posts and/or to quoted and [@mention](https://www.phpbb.com/customise/db/extension/simple_mentions) (if you are using Simple mentions extension) posts. 
+
+* Save the changes, navigate to the forum configured above, and create a new post (if you configured `Reply on a post`) or quote/[@mention]() the `FaceSwap` user to verify that it is working as expected. Refer to the [troubleshooting](#troubleshooting) section if you encounter any issues.  
+
+* You **MUST** configure the [Discord CDN smart proxy](#discord-cdn-smart-proxy-setup) so that the generated images become visible on your board.
+
+## Pika setup 
+
+* ✔️ Pika [tutorial and examples](https://privet.fun/viewtopic.php?t=4220).    
+
+* You'll need [Pika](https://useapi.net/docs/start-here/setup-pika) Discord and [useapi.net](https://useapi.net/docs/start-here/setup-useapi) accounts with active useapi.net [subscription](https://useapi.net/docs/subscription).    
+  Pika Discord bot is currently free to use and does not require any additional subscription.
+
+* Create new board user who will act as AI bot, for our example we will use user `Pika`.  
+  Make sure this user account is activated and fully functional.  
+
+* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `pika` from AI dropdown:  
+  ![Attachment settings](../privet/ailabs/docs/pika_setup.png)  
+  
+  - Use `Load default configuration/template` to get defaults.  
+    Replace Configuration JSON `api-key`, `discord` and `channel` with your values.
+    If you explicitly configured your [Pika useapi.net account](https://useapi.net/docs/api-pika-v1/post-pika-account-channel) you do not need to specify the `discord` and `channel` values and can delete them from the configuration. 
+  
+  - Select forums where you want `Pika` AI user to reply to new posts and/or to quoted and [@mention](https://www.phpbb.com/customise/db/extension/simple_mentions) (if you are using Simple mentions extension) posts. 
+
+* Save changes, navigate to forum configured above and create new post (if you configured `Reply on a post`) or quote/[@mention]() `Pika` user:  
+  ![Attachment settings](../privet/ailabs/docs/pika_example.png)
+
+* Refer to this [post](https://privet.fun/viewtopic.php?t=4220) to learn more about the currently supported Pika bot functionality.
+
+* You **MUST** configure the [Discord CDN smart proxy](#discord-cdn-smart-proxy-setup) so that the generated mp4 media become visible on your board.
+
+* You **MUST** configure the [BBCode `mp4` tag](#bbcode-mp4-tag) so that the generated mp4 media become viewable on your board.
+
+## PixVerse setup 
+
+* ✔️ PixVerse [tutorial and examples](https://privet.fun/viewtopic.php?t=4522).    
+
+* You'll need [PixVerse](https://useapi.net/docs/start-here/setup-pixverse) Discord and [useapi.net](https://useapi.net/docs/start-here/setup-useapi) accounts with active useapi.net [subscription](https://useapi.net/docs/subscription).    
+   PixVerse Discord bot is currently free to use and does not require any additional subscription. 
+
+* Create new board user who will act as AI bot, for our example we will use user `PixVerse`.  
+  Make sure this user account is activated and fully functional.  
+
+* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `pixverse` from AI dropdown:  
+  ![Attachment settings](../privet/ailabs/docs/pixverse_setup.png)  
+  
+  - Use `Load default configuration/template` to get defaults.  
+    Replace Configuration JSON `api-key`, `discord`, `server` and `channel` with your values.  
+    If you explicitly configured your [PixVerse useapi.net account](https://useapi.net/docs/api-pixverse-v1/post-pixverse-account-channel) you do not need to specify `discord`, `server` and `channel` values and can delete them from the configuration.   
+    👉 You can replace the `url_create` field value with `https://api.useapi.net/v1/pixverse/create_single` if you wish to generate a single video per request. If you choose to do so, it is safe to increase the `maxJobs` value to `5` or perhaps even `7`.
+  
+  - Select forums where you want `PixVerse` AI user to reply to new posts and/or to quoted and [@mention](https://www.phpbb.com/customise/db/extension/simple_mentions) (if you are using Simple mentions extension) posts. 
+
+* Save the changes, navigate to the forum configured above, and create a new post (if you configured `Reply on a post`) or quote/[@mention]() the `PixVerse` user to verify that it is working as expected. Refer to the [troubleshooting](#troubleshooting) section if you encounter any issues.  
+
+* You **MUST** configure the [Discord CDN smart proxy](#discord-cdn-smart-proxy-setup) so that the generated mp4 media become visible on your board.
+
+* You **MUST** configure the [BBCode `mp4` tag](#bbcode-mp4-tag) so that the generated mp4 media become viewable on your board.
+
+## PixVerse_MemeFace setup 
+
+* ✔️ PixVerse_MemeFace [tutorial and examples](https://privet.fun/viewtopic.php?t=4523).    
+
+* You'll need [PixVerse](https://useapi.net/docs/start-here/setup-pixverse) Discord and [useapi.net](https://useapi.net/docs/start-here/setup-useapi) accounts with active useapi.net [subscription](https://useapi.net/docs/subscription).    
+   PixVerse Discord bot is currently free to use and does not require any additional subscription. 
+
+* Create new board user who will act as AI bot, for our example we will use user `PixVerse_MemeFace`.  
+  Make sure this user account is activated and fully functional.  
+
+* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add new configuration, select `pixverse_meme_face` from AI dropdown:  
+  ![Attachment settings](../privet/ailabs/docs/pixverse_meme_face_setup.png)  
+  
+  - Use `Load default configuration/template` to get defaults.  
+    Replace Configuration JSON `api-key`, `discord`, `server` and `channel` with your values.  
+    If you explicitly configured your [PixVerse useapi.net account](https://useapi.net/docs/api-pixverse-v1/post-pixverse-account-channel) you do not need to specify `discord`, `server` and `channel` values and can delete them from the configuration.   
+  
+  - Select forums where you want `PixVerse_MemeFace` AI user to reply to new posts and/or to quoted and [@mention](https://www.phpbb.com/customise/db/extension/simple_mentions) (if you are using Simple mentions extension) posts. 
+
+* Save the changes, navigate to the forum configured above, and create a new post (if you configured `Reply on a post`) or quote/[@mention]() the `PixVerse_MemeFace` user to verify that it is working as expected. Refer to the [troubleshooting](#troubleshooting) section if you encounter any issues.  
+
+* You **MUST** configure the [Discord CDN smart proxy](#discord-cdn-smart-proxy-setup) so that the generated mp4 media become visible on your board.
+
+* You **MUST** configure the [BBCode `mp4` tag](#bbcode-mp4-tag) so that the generated mp4 media become viewable on your board.
 
 ## ChatGPT setup 
+
+* ✔️ ChatGPT [tutorial and examples](https://privet.fun/viewtopic.php?t=4528).
 
 *  You will need OpenAI account, sign up at https://platform.openai.com/.  
    To obtain API key go to https://platform.openai.com/account/api-keys, click on `Create new secret key`, copy and save in a safe place generated API key.  
@@ -247,13 +322,14 @@ The Gemini Vision bot does not support conversations, you will need to provide a
   ![Attachment settings](../privet/ailabs/docs/chatgpt_example.png)
 
 * Fine-tuning can be done by adjusting following OpenAI API chat parameters https://platform.openai.com/docs/api-reference/chat
-  - `model`, default `gpt-3.5-turbo`, full list of models available at https://platform.openai.com/docs/models
+  - `model`, default `gpt-4o`, full list of models available at https://platform.openai.com/docs/models
   - `temperature`, `top_p`, `frequency_penalty` and `presence_penalty` - see https://platform.openai.com/docs/api-reference/chat/create
 
 * Additional setting used by ChatGPT AI 
-  - `max_tokens`, default 4096, define size reserved for AI reply when quoted  
-  - `prefix`, default empty, can be used to prompt model, see [ChatGPT advanced setup](#chatgpt-advanced-setup) for details  
-  - `prefix_tokens`, default 0, see [ChatGPT advanced setup](#chatgpt-advanced-setup) for details    
+  - `max_tokens`, default 4096, define size reserved for AI reply when quoted.  
+  - `prefix`, default empty, can be used to prompt model, see [ChatGPT advanced setup](#chatgpt-advanced-setup) for details.  
+    👉 You can hint ChatGPT to format its responses using phpBB bbcodes markup by specifying `"prefix": "Use phpBB bbcode formatting when answering, unless explicitly specified otherwise."` and `"prefix_tokens": 21`.    
+  - `prefix_tokens`, default 0, see [ChatGPT advanced setup](#chatgpt-advanced-setup) for details.    
   - `max_quote_length`, if provided, the quoted response text will be truncated to the number of words defined by the max_quote_length value. Set it to 0 to remove all quoted text entirely.  
 
 ## ChatGPT advanced setup 
@@ -269,6 +345,8 @@ Finally go back to `Bender` AI bot configuration and update params `prefix` and 
 ![Attachment settings](../privet/ailabs/docs/chatgpt_bender_example.png)  
 
 ## Claude setup 
+
+* ✔️ Claude [tutorial and examples](https://privet.fun/viewtopic.php?t=4527).
 
 * Please follow the Anthropic [instructions](https://docs.anthropic.com/claude/docs/getting-access-to-claude) to create and activate a Claude API key.  
    Note the Claude API key you create, you will need it later to set up the Claude bot.  
@@ -288,20 +366,64 @@ Finally go back to `Bender` AI bot configuration and update params `prefix` and 
 * Fine-tuning can be achieved by adjusting the following Claude API configuration parameters:
   - `model` can be found here: https://docs.anthropic.com/claude/docs/models-overview#model-recommendations.
   - `temperature`, `max_tokens`, `system` can be found here: https://docs.anthropic.com/claude/reference/messages_post.
-    Parameter `system` is a way of providing context and instructions to Claude, such as specifying a particular goal or role, see guide to [system prompts](https://docs.anthropic.com/claude/docs/system-prompts). If specified you will need to add number of tokens used by system prompt to `system_token` value to ensure correct token count. You can follow instructions for [ChatGPT advanced setup](#chatgpt-advanced-setup) to calculate `system_token` value.  
+    Parameter `system` is a way of providing context and instructions to Claude, such as specifying a particular goal or role, see guide to [system prompts](https://docs.anthropic.com/claude/docs/system-prompts). If specified you will need to add number of tokens used by system prompt to `system_token` value to ensure correct token count. You can follow instructions for [ChatGPT advanced setup](#chatgpt-advanced-setup) to calculate `system_token` value.   
+    👉 You can hint Claude to format its responses using phpBB bbcodes markup by specifying `"system": "Use phpBB bbcode formatting when answering, unless explicitly specified otherwise."` and `"system_tokens": 23`.     
     Users can override `temperature` parameter by providing a hint in the message using the `--temperature value` notation, e.g. `--temperature 0` or `--temperature 0.5` 
 
-* Additional settings used by the Gemini API:
+* Additional settings:
   - `max_quote_length`, if provided, the quoted response text will be truncated to the number of words defined by the `max_quote_length` value. Set it to 0 to remove all quoted text entirely. 
+
+## Gemini setup 
+
+* ✔️ Gemini [tutorial and examples](https://privet.fun/viewtopic.php?t=4525).
+
+* Please follow the Google [instructions](https://ai.google.dev/tutorials/rest_quickstart) to create and activate a Gemini API key in Google AI Studio.  
+   Note the Gemini API key you create, you will need it later to set up the Gemini and Gemini Vision bots.  
+
+* Create a new board user who will act as the AI bot, for our example, we will use the user `Gemini`.  
+  Ensure this user account is activated and fully functional.  
+
+* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add a new configuration, selecting `gemini` from the AI dropdown:    
+  ![](../privet/ailabs/docs/gemini_setup.png)  
+  
+  - Use `Load default configuration/template` to load the defaults.  
+    Replace `<API-KEY>` in the Configuration JSON with your Gemini API key.    
+    👉 You can hint Gemini to format its responses using phpBB bbcodes markup by specifying `"prefix": "Use phpBB bbcode formatting when answering, unless explicitly specified otherwise."`.    
+  - Select the forums where you want the `Gemini` AI user to reply to new posts and/or to quoted and [@mention](https://www.phpbb.com/customise/db/extension/simple_mentions) posts (if you are using the Simple Mentions extension). 
+
+* Save the changes, navigate to the forum configured above, and create a new post (if you configured `Reply on a post`) or quote/[@mention]() the `Gemini` user to verify that it is working as expected. Refer to the [troubleshooting](#troubleshooting) section if you encounter any issues.
+
+* Fine-tuning can be achieved by adjusting the following Gemini API configuration parameters:
+  - `model` can be found here: https://ai.google.dev/models/gemini#model-versions, `model` is part of `url_generateContent` and `url_countTokens`.
+  - `temperature`, `topK`, `topP` can be found here: https://ai.google.dev/docs/concepts#model_parameters, these should be placed in the `generation_config` node.
+    Users can override the above parameters by providing a hint in the message using the `--param value` notation, where `--param` is case-insensitive.
+    E.g. `--temperature 0` or `--temperature 0.5 --topk 1 --topp 0.8` 
+
+* Additional settings used by the Gemini API:
+  - `max_tokens`, default 30720, this is the maximum size of the entire conversation.
+  - `prefix`, default is empty, it can be used to prompt the model.  
+  - `max_quote_length`, if provided, the quoted response text will be truncated to the number of words defined by the `max_quote_length` value. Set it to 0 to remove all quoted text entirely. 
+
+For an examples of how to use Gemini bot please refer to [Gemini](https://privet.fun/viewtopic.php?t=4525).
+
+## Gemini Vision setup 
+
+✔️ Gemini Vision [tutorial and examples](https://privet.fun/viewtopic.php?t=4089).
+
+The setup for Gemini Vision follows the same steps as the above-mentioned Gemini bot. You will need to create a separate board user, e.g. `GeminiVision` and select `gemini_vision` from the AI dropdown.
+
+The Gemini Vision bot does not support conversations, you will need to provide a prompt along with an image every time. You can attach an image to the post or provide an image URL directly in the prompt. For an examples of how to use Gemini Vision bot please refer to [Gemini Vision](https://privet.fun/viewtopic.php?t=4089).
 
 ## Chat bots can share conversation history
 
-AI chat bots (ChatGPT, Gemini and Claude) can now share each other's conversation history and context.  
+AI chat bots (ChatGPT, Gemini, and Claude) can now access each other's conversation history and context (starting from version 1.0.10 of this extension).  
 You can start chatting with one AI chat bot and later on in the conversation tag another bot(s).  
 Tagged bots will automatically inherit the entire conversation history and context.  
 Please see [example](https://privet.fun/viewtopic.php?t=4221).
 
 ## DALL-E setup 
+
+✔️ DALL-E [tutorial and examples](https://privet.fun/viewtopic.php?t=4529).
 
 Setup mostly the same as for ChatGPT above:  
 ![Attachment settings](../privet/ailabs/docs/dalle_setup.png)    
@@ -318,9 +440,29 @@ Refer to https://platform.openai.com/docs/api-reference/images/create to learn m
 
  * To create [variations](https://platform.openai.com/docs/api-reference/images/create-variation) of the image simply post image url to the prompt, [example](https://privet.fun/viewtopic.php?p=355596#p355596)
 
-## Stable Diffusion setup 
+## Stable Diffusion v3 setup 
 
-*  You will need Stability AI account, follow official instructions https://platform.stability.ai/docs/getting-started/authentication to create account and obtain API key.  
+* ✔️ Stable Diffusion v3 [tutorial and examples](https://privet.fun/viewtopic.php?t=4520).
+ 
+*  You will need Stability AI account, follow official [instructions](https://platform.stability.ai/docs/getting-started) to create account and obtain API key.  
+
+* Create a new board user who will act as the AI bot, for our example, we will use the user `Stable Diffusion v3`.  
+  Ensure this user account is activated and fully functional.  
+
+* Go to `ACP` > `Extensions` > `AI Labs` > `Settings` and add a new configuration, selecting `stablediffusion_v3` from the AI dropdown:    
+  ![](../privet/ailabs/docs/stablediffusion_v3_setup.png)  
+  
+  - Use `Load default configuration/template` to load the defaults.  
+    Replace `<API-KEY>` in the Configuration JSON with your Stability AI account API key.    
+  - Select the forums where you want the `Stable Diffusion v3` AI user to reply to new posts and/or to quoted and [@mention](https://www.phpbb.com/customise/db/extension/simple_mentions) posts (if you are using the Simple Mentions extension). 
+
+* Save the changes, navigate to the forum configured above, and create a new post (if you configured `Reply on a post`) or quote/[@mention]() the `Stable Diffusion v3` user to verify that it is working as expected. Refer to the [troubleshooting](#troubleshooting) section if you encounter any issues.  
+  
+## Stable Diffusion v2 setup 
+
+* This section covers original Stable Diffusion v2 setup.
+ 
+*  You will need Stability AI account, follow official [instructions](https://platform.stability.ai/docs/getting-started) to create account and obtain API key.  
 
 * Create new board user, let's say `Stable Diffusion` and create configuration:  
   ![Attachment settings](../privet/ailabs/docs/stablediffusion_setup.png)     
@@ -350,6 +492,22 @@ Refer to https://platform.openai.com/docs/api-reference/images/create to learn m
 This extension is currently being actively developed. For communication, please use https://github.com/privet-fun/phpbb_ailabs/issues.
 
 ## Changelog 
+
+* 2.0.0 June 30, 2024
+  - Support for four new Discord AI bots added:
+    * [FaceSwap](#faceswap-setup)
+    * [PixVerse • AI text/text+image to video](#pixverse-setup)
+    * [PixVerse\_MemeFace • AI text+image to video](#pixverse_memeface-setup)
+    * [Stable Diffusion v3](#stable-diffusion-v3-setup)
+  - Link to API help page along with the API command will be provided within the reply (where applicable) for all Discord AI bots.
+  - All default AI bot templates have been updated with the most recent configuration values, including model names and other parameters.
+  - Added citation links are optionally provided by Gemini 1.5+. Notice the [example](https://privet.fun/viewtopic.php?p=694685#p694685) URL links at the bottom of the reply.
+  - Field sizes of the request and response fields in the log table have been increased to accommodate longer content.
+  - Major codebase refactoring to unify logic for Discord AI bots supported via useapi.net and to handle attachments and images imported from URLs.
+  - Minor bug fixes.
+
+  **IMPORTANT**  
+  When updating to v 2.0.0 from older versions you will need to updated your existing configuration(s). After then new version is [installed](#installation) go thru all configured AI bots and `Load default configuration/template` for each, make sure to save your API keys and Discord configuration (discord token, server and channel values where applicable) and place them back into updated configuration. 
 
 * 1.0.10 May 5, 2024
   - Added [Discord CDN smart proxy setup](#discord-cdn-smart-proxy-setup)

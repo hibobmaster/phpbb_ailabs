@@ -3,8 +3,8 @@
     "type": "phpbb-extension",
     "description": "AI Labs",
     "homepage": "https://privet.fun",
-    "version": "1.0.10",
-    "time": "2024-05-05",
+    "version": "2.0.0",
+    "time": "2024-06-30",
     "keywords": [
         "phpbb",
         "extension",
@@ -12,6 +12,7 @@
         "privet.fun",
         "ailabs",
         "pika",
+        "pixverse",
         "claude",
         "gemini",
         "gemini vision",

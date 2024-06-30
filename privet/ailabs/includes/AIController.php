@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use privet\ailabs\includes\resultParse;
+use privet\ailabs\includes\RequestHelper;
 
 class AIController
 {
@@ -40,6 +41,8 @@ class AIController
     protected $lang;
 
     protected $debug = false;
+
+    protected $tmp_files = [];
 
     public function __construct(
         \phpbb\auth\auth $auth,
@@ -69,6 +72,12 @@ class AIController
         $this->root_path = $root_path;
         $this->users_table = $users_table;
         $this->jobs_table = $jobs_table;
+
+        $this->setup();
+    }
+
+    protected function setup()
+    {
     }
 
     /**
@@ -569,8 +578,10 @@ class AIController
         return $history;
     }
 
-    protected function load_first_attachment($postId)
+    protected function load_attachments($postId)
     {
+        $items = [];
+
         $sql = 'SELECT physical_filename FROM ' . ATTACHMENTS_TABLE . ' WHERE post_msg_id = ' . $postId . ' AND is_orphan = 0 ORDER BY attach_id ASC';
         $result = $this->db->sql_query($sql);
         $attachments = $this->db->sql_fetchrowset($result);
@@ -580,10 +591,10 @@ class AIController
             $filename = $this->root_path . $this->config['upload_path'] . '/' . utf8_basename($attachment['physical_filename']);
 
             if (file_exists($filename))
-                return file_get_contents($filename);
+                array_push($items, file_get_contents($filename));
         }
 
-        return false;
+        return $items;
     }
 
     function extract_numeric_settings(&$text, $fields_array, &$settings = [], &$info = "", $info_divider = " ")
@@ -610,6 +621,36 @@ class AIController
                     $settings[$value] = $new[$value];
             }
         }
+
+        return !empty($info);
+    }
+
+    function extract_settings(&$text, $fields_array, &$settings = [], &$info = "", $info_divider = " ")
+    {
+        $info = "";
+        $new = [];
+
+        foreach ((array)$fields_array as $key => $value) {
+            preg_match("/(--|—)" . $key . "\s([^ ]+)/i", $text, $matches);
+
+            if (isset($matches[2])) {
+                $new[$value] = $matches[2];
+                $text = preg_replace("/(--|—)" . $key . "\s([^ ]+)/i", '', $text);
+                $info .= "--" . $value . " " . $new[$value] . $info_divider;
+            }
+        }
+
+        $info = rtrim($info, $info_divider);
+
+        if (!empty($info)) {
+            foreach ((array)$fields_array as $key => $value) {
+                unset($settings[$value]);
+                if (isset($new[$value]))
+                    $settings[$value] = $new[$value];
+            }
+        }
+
+        $text = trim($text);
 
         return !empty($info);
     }
@@ -669,5 +710,83 @@ class AIController
         }
 
         return $response_code;
+    }
+
+    protected function get_attachments_or_urls(&$request, &$messages = [], $file_ext = 'image/png')
+    {
+        $files = [];
+
+        // Remove leading new lines and empty spaces 
+        $request = preg_replace('/^[\r\n\s]+/', '', $request);
+
+        // Adjust quotes 
+        $request = str_replace(['&quot;', '&amp;'], ['"', '&'], $request);
+
+        // Remove all BBCodes
+        $request = preg_replace('/\[(.*?)=?.*?\](.*?)\[\/\\1\]/i', '$2', $request);
+
+        // Check for attachments first
+        $attachments = $this->load_attachments($this->job['post_id']);
+
+        foreach ($attachments as $index => $attachment) {
+            $tmp_file = tmpfile();
+            $temp_filename = stream_get_meta_data($tmp_file)['uri'];
+            fwrite($tmp_file, $attachment);
+
+            array_push($this->tmp_files, $tmp_file);
+
+            array_push($files, curl_file_create($temp_filename, $file_ext));
+            $this->log["attachment_temp_filename_" . $index] = $temp_filename;
+            $this->log["attachment_temp_filename_" . $index . "_size"] = filesize($temp_filename);
+        }
+
+        // Check if there's URL's in the message and attempt to load them
+        $url_pattern = '/\bhttps?:\/\/[^\s,()<>]+(?:\([\w\d]+\)|(?:[^,[:punct:]\s]|\/))/i';
+
+        preg_match_all($url_pattern, $request, $matches);
+
+        $urls = $matches[0];
+
+        if (!empty($urls)) {
+            $board_url = generate_board_url();
+
+            foreach ($urls as $index => $url) {
+                // Remove URL from the post (request) text
+                $request = str_replace($url, '', $request);
+
+                $this->log["url_board"] = $board_url;
+                $this->log["url_" . $index] = $url;
+
+                $headers = null;
+
+                // If link is pointing to board download URL attempt to pass user's session cookie 
+                if (stripos($url, $board_url) === 0) {
+                    $request_helper = new RequestHelper($this->request);
+                    $request_helper->streamContextCreate("GET", $headers);
+                    if (!empty($headers))
+                        $this->log["url_" . $index . "_headers"] = $headers;
+                }
+
+                $tmp_file = tmpfile();
+                $temp_filename = stream_get_meta_data($tmp_file)['uri'];
+                $url_result = $this->urlToFile($url, $temp_filename, $headers, $this->debug);
+
+                // HTTP OK
+                if ($url_result == 200) {
+                    array_push($this->tmp_files, $tmp_file);
+                    array_push($files, curl_file_create($temp_filename, $file_ext));
+                    $this->log["url_temp_filename_" . $index] = $temp_filename;
+                    $this->log["url_temp_filename_" . $index . "_size"] = filesize($temp_filename);
+                } else {
+                    $this->log['url_error'] = $url_result;
+                    array_push($messages, $this->language->lang('AILABS_ERROR_UNABLE_DOWNLOAD_URL') . $url .
+                        (is_numeric($url_result) && ($url_result != 0) ? ' ( HTTP ' . $url_result . ' )' : ''));
+                }
+            }
+        }
+
+        $request = trim($request);
+
+        return $files;
     }
 }

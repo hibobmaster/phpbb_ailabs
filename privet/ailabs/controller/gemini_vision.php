@@ -58,68 +58,21 @@ template
 
 class gemini_vision extends GenericController
 {
-    protected $tmpfile = null;
+    protected $messages = [];
     protected $settings;
 
     protected function prepare($opts)
     {
-        // Remove leading new lines and empty spaces 
-        $request = preg_replace('/^[\r\n\s]+/', '', $this->job['request']);
-        // Adjust quotes 
-        $request = str_replace(['&quot;', '&amp;'], ['"', '&'], $request);
-        // Remove all BBCodes
-        $request = preg_replace('/\[(.*?)=?.*?\](.*?)\[\/\\1\]/i', '$2', $request);
+        $request = $this->job['request'];
 
-        // Check for attachments first
-        $fileContent = $this->load_first_attachment($this->job['post_id']);
+        // This will populate $this->tmp_files
+        $this->get_attachments_or_urls($request, $this->messages, 'image/png');
 
-        // If none found attempt to find URLs in the post body
-        if ($fileContent == false) {
-            $url_pattern = '/\bhttps?:\/\/[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|\/))/i';
-
-            preg_match($url_pattern, $request, $urls);
-
-            if (isset($urls[0])) {
-                $url = $urls[0];
-
-                // Remove URL from the post (request) text
-                $request = str_replace($url, '', $request);
-
-                $this->log['url'] = $url;
-                $this->log['url_board'] = generate_board_url();
-
-                $headers = null;
-
-                // If link is pointing to board download URL attempt to pass user's session cookie 
-                if (stripos($url, generate_board_url()) === 0) {
-                    $requestHelper = new RequestHelper($this->request);
-                    $requestHelper->streamContextCreate("GET", $headers);
-                    if (!empty($headers))
-                        $this->log['url_headers'] = $headers;
-                }
-
-                $this->tmpfile = tmpfile();
-                $temp_filename = stream_get_meta_data($this->tmpfile)['uri'];
-                $url_result = $this->urlToFile($url, $temp_filename, $headers, $this->debug);
-
-                // HTTP OK
-                if ($url_result == 200) {
-                    $fileContent = file_get_contents($temp_filename);
-                    $this->log['url_temp_filename'] = $temp_filename;
-                    $this->log['url_temp_filename_size'] = filesize($temp_filename);
-                } else {
-                    $this->log['url_error'] = $url_result;
-                    $opts = [
-                        'error_message' => $this->language->lang('AILABS_ERROR_UNABLE_DOWNLOAD_URL') . $url .
-                            (is_numeric($url_result) && ($url_result != 0) ? ' ( HTTP ' . $url_result . ' )' : '')
-                    ];
-                }
-            } else {
-                $opts = ['error_message' => $this->language->lang('AILABS_ERROR_PROVIDE_URL')];
-            }
-        }
-
-        if ($fileContent !== false) {
+        if (empty($this->tmp_files)) {
+            if (empty($this->messages))
+                array_push($this->messages, $this->language->lang('AILABS_ERROR_PROVIDE_URL'));
+            $opts = ['error_message' => implode(PHP_EOL, $this->messages)];
+        } else {
             /*
                 {
                     "contents":[
@@ -147,15 +100,18 @@ class gemini_vision extends GenericController
 
             $this->log['text'] = $request;
 
+            $temp_filename = stream_get_meta_data($this->tmp_files[0])['uri'];
+
             $opts = [
                 'contents' =>
                 [[
                     'parts' => [
+                        ['text' => empty($this->cfg->prefix) ? '' : $this->cfg->prefix],
                         ['text' => $request],
                         [
                             'inline_data' => [
                                 'mime_type' => 'image/jpeg',
-                                'data' => base64_encode($fileContent)
+                                'data' => base64_encode(file_get_contents($temp_filename))
                             ]
                         ]
                     ]
@@ -165,7 +121,7 @@ class gemini_vision extends GenericController
             ];
 
             // Prevent from saving contents to logs
-            $this->redactOpts = ['contents'];
+            $this->redactOpts = ['data'];
         }
 
         return $opts;
@@ -292,6 +248,16 @@ class gemini_vision extends GenericController
             } else {
                 $this->job['status'] = 'ok';
                 $message = $json->candidates[0]->content->parts[0]->text;
+
+                // Attempt to extract citation https://ai.google.dev/api/rest/v1beta/CitationMetadata
+                if (!empty($json->candidates[0]->citationMetadata) && !empty($json->candidates[0]->citationMetadata->citationSources)) {
+                    $links = '';
+                    foreach ($json->candidates[0]->citationMetadata->citationSources as $index => $item)
+                        if (!empty($item->uri))
+                            $links .= '[url=' .  $item->uri . ']' . ($index + 1) . '[/url] ';
+                    if (!empty($links))
+                        $message .= PHP_EOL . "[size=85]" . trim($links) . "[/size]";
+                }
             }
         }
 

@@ -35,6 +35,9 @@ class acp_controller //implements acp_interface
 	protected $tpr_ailabs;
 
 	protected $desc_contollers = [
+		'/ailabs/faceswap',
+		'/ailabs/pixverse',
+		'/ailabs/pixverse_meme_face',
 		'/ailabs/pika',
 		'/ailabs/claude',
 		'/ailabs/gemini',
@@ -42,6 +45,7 @@ class acp_controller //implements acp_interface
 		'/ailabs/chatgpt',
 		'/ailabs/dalle',
 		'/ailabs/stablediffusion',
+		'/ailabs/stablediffusion_v3',
 		'/ailabs/midjourney',
 		'/ailabs/scriptexecute',
 		discord_cdn::ailabs_discord_cdn_controller

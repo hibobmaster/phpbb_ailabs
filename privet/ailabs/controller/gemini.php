@@ -310,6 +310,17 @@ class gemini extends AIController
                 $this->job['status'] = 'ok';
                 $api_response = $json->candidates[0]->content->parts[0]->text;
                 $response = $api_response;
+
+                // Attempt to extract citation https://ai.google.dev/api/rest/v1beta/CitationMetadata
+                if (!empty($json->candidates[0]->citationMetadata) && !empty($json->candidates[0]->citationMetadata->citationSources)) {
+                    $links = '';
+                    foreach ($json->candidates[0]->citationMetadata->citationSources as $index => $item)
+                        if (!empty($item->uri))
+                            $links .= '[url=' .  $item->uri . ']' . ($index + 1) . '[/url] ';
+                    if (!empty($links))
+                        $response .= PHP_EOL . "[size=85]" . trim($links) . "[/size]";
+                }
+
                 $response_tokens = $this->countTokens($response, 'response.response_tokens');
             }
         } catch (\Exception $e) {

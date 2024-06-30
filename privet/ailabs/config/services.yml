@@ -34,6 +34,57 @@ services:
         tags:
             - { name: event.listener }
 
+    privet.ailabs.controller_faceswap:
+        class: privet\ailabs\controller\faceswap
+        arguments:
+            - "@auth"
+            - "@config"
+            - "@dbal.conn"
+            - "@controller.helper"
+            - "@language"
+            - "@request"
+            - "@template"
+            - "@user"
+            - "@service_container"
+            - "%core.php_ext%"
+            - "%core.root_path%"
+            - "%privet.ailabs.tables.users%"
+            - "%privet.ailabs.tables.jobs%"            
+
+    privet.ailabs.controller_pixverse:
+        class: privet\ailabs\controller\pixverse
+        arguments:
+            - "@auth"
+            - "@config"
+            - "@dbal.conn"
+            - "@controller.helper"
+            - "@language"
+            - "@request"
+            - "@template"
+            - "@user"
+            - "@service_container"
+            - "%core.php_ext%"
+            - "%core.root_path%"
+            - "%privet.ailabs.tables.users%"
+            - "%privet.ailabs.tables.jobs%"
+
+    privet.ailabs.controller_pixverse_meme_face:
+        class: privet\ailabs\controller\pixverse_meme_face
+        arguments:
+            - "@auth"
+            - "@config"
+            - "@dbal.conn"
+            - "@controller.helper"
+            - "@language"
+            - "@request"
+            - "@template"
+            - "@user"
+            - "@service_container"
+            - "%core.php_ext%"
+            - "%core.root_path%"
+            - "%privet.ailabs.tables.users%"
+            - "%privet.ailabs.tables.jobs%"
+
     privet.ailabs.controller_pika:
         class: privet\ailabs\controller\pika
         arguments:
@@ -138,6 +189,23 @@ services:
 
     privet.ailabs.controller_stablediffusion:
         class: privet\ailabs\controller\stablediffusion
+        arguments:
+            - "@auth"
+            - "@config"
+            - "@dbal.conn"
+            - "@controller.helper"
+            - "@language"
+            - "@request"
+            - "@template"
+            - "@user"
+            - "@service_container"
+            - "%core.php_ext%"
+            - "%core.root_path%"
+            - "%privet.ailabs.tables.users%"
+            - "%privet.ailabs.tables.jobs%"
+
+    privet.ailabs.controller_stablediffusion_v3:
+        class: privet\ailabs\controller\stablediffusion_v3
         arguments:
             - "@auth"
             - "@config"

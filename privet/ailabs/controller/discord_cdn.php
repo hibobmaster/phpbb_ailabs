@@ -176,6 +176,6 @@ class discord_cdn extends GenericController
                 $url = substr($url, 0, $pos2) . "?ext=" . $ext . "&" . substr($url, $pos1 + 1);
             }
         }
-        return $url;
+        return trim(rtrim($url, '&'));
     }
 }
