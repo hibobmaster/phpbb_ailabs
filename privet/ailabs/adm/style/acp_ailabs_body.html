@@ -1,0 +1,487 @@
+{% INCLUDE 'overall_header.html' %}
+
+{% INCLUDEJS '@privet_ailabs/js/chosen.jquery.min.js' %}
+
+{% INCLUDECSS '@privet_ailabs/chosen.min.css' %}
+
+<a id="maincontent"></a>
+
+<div style="display: flex; align-items: baseline;">
+	<h1 style="white-space: nowrap;">{{ lang('ACP_AILABS_TITLE') }}</h1>
+	<div style="width: 100%;"></div><span style="white-space: nowrap;">v. {{ U_AILABS_VERSION }}</span>
+</div>
+
+<p>
+	<span>{{ lang('LBL_AILABS_SETTINGS_DESC') }}</span>
+
+	{% if U_AILABS_VEIW %}
+	<a href="{{ U_ADD }}" class="button2" style="float: {{ S_CONTENT_FLOW_END }};">{{ lang('ACP_AILABS_ADD') }}</a>
+	<br>
+	<br>
+
+	{% if U_IP_CHECK %}
+	<span>{{ U_IP_CHECK }}</span>
+	{% endif %}
+
+	{% endif %}
+
+	{% if U_AILABS_ADD_EDIT %}
+	<a href="{{ U_BACK }}" style="float: {{ S_CONTENT_FLOW_END }};">&laquo; {{ lang('BACK') }}</a>
+	{% endif %}
+</p>
+
+{% if S_ERROR %}
+<div class="errorbox">
+	<h3>{{ lang('WARNING') }}</h3>
+	<p>{{ S_ERROR }}</p>
+</div>
+{% endif %}
+
+{% if U_AILABS_ADD_EDIT %}
+
+<form id="ailabs_configuration" method="POST" action="{{ U_ACTION }}">
+
+	<script type="text/javascript">
+		const defaultConfigs = {
+			"faceswap": {
+				"url_picsi": "https://api.useapi.net/v1/faceswap/picsi",
+				"api_key": "<API_KEY>",
+				"channel": "optional|your-discord-channel-id",
+				"retryCount": 80,
+				"timeoutBeforeRetrySec": 15
+			},
+			"pixverse": {
+				"url_create": "https://api.useapi.net/v1/pixverse/create",
+				"url_animate": "https://api.useapi.net/v1/pixverse/animate",
+				"url_button": "https://api.useapi.net/v1/pixverse/button",
+				"api_key": "<API_KEY>",
+				"discord": "optional|your-discord-token",
+				"server": "optional|your-discord-server-id",
+				"channel": "optional|your-discord-channel-id",
+				"maxJobs": 3,
+				"retryCount": 80,
+				"timeoutBeforeRetrySec": 15
+			},
+			"pixverse_meme_face": {
+				"url_meme_face": "https://api.useapi.net/v1/pixverse/meme_face",
+				"url_button": "https://api.useapi.net/v1/pixverse/button",
+				"api_key": "<API_KEY>",
+				"discord": "optional|your-discord-token",
+				"server": "optional|your-discord-server-id",
+				"channel": "optional|your-discord-channel-id",
+				"maxJobs": 3,
+				"retryCount": 80,
+				"timeoutBeforeRetrySec": 15
+			},
+			"pika": {
+				"url_create": "https://api.useapi.net/v1/pika/create",
+				"url_animate": "https://api.useapi.net/v1/pika/animate",
+				"url_button": "https://api.useapi.net/v1/pika/button",
+				"api_key": "<API_KEY>",
+				"discord": "optional|your-discord-token",
+				"channel": "optional|your-discord-channel-id",
+				"maxJobs": 10,
+				"retryCount": 80,
+				"timeoutBeforeRetrySec": 15
+			},
+			"midjourney": {
+				"url_imagine": "https://api.useapi.net/v2/jobs/imagine",
+				"url_button": "https://api.useapi.net/v2/jobs/button",
+				"url_seed": "https://api.useapi.net/v2/jobs/seed",
+				"api_key": "<API_KEY>",
+				"discord": "optional|your-discord-token",
+				"server": "optional|your-discord-server-id",
+				"channel": "optional|your-discord-channel-id",
+				"maxJobs": 3,
+				"retryCount": 80,
+				"timeoutBeforeRetrySec": 15
+			},
+			"claude": {
+				"url_messages": "https://api.anthropic.com/v1/messages",
+				"url_headers": {
+					"x-api-key": "<API_KEY>",
+					"anthropic-version": "2023-06-01"
+				},
+				"model": "claude-3-5-sonnet-20240620",
+				"max_tokens": 2048,
+				"system": "",
+				"system_tokens": 0,
+				"temperature": 1.0,
+				"max_quote_length": 10
+			},
+			"gemini": {
+				"url_generateContent": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=<API_KEY>",
+				"url_countTokens": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:countTokens?key=<API_KEY>",
+				"max_tokens": 30720,
+				"max_quote_length": 10,
+				"prefix": "",
+				"safety_settings": [
+					{
+						"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+						"threshold": "BLOCK_NONE"
+					},
+					{
+						"category": "HARM_CATEGORY_HATE_SPEECH",
+						"threshold": "BLOCK_NONE"
+					},
+					{
+						"category": "HARM_CATEGORY_HARASSMENT",
+						"threshold": "BLOCK_NONE"
+					},
+					{
+						"category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+						"threshold": "BLOCK_NONE"
+					}
+				],
+				"generation_config": {
+					"temperature": 0.3,
+					"topK": 40,
+					"topP": 0.95,
+					"candidateCount": 1,
+					"maxOutputTokens": 30720
+				}
+			},
+			"gemini_vision": {
+				"url_generateContent": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=<API_KEY>",
+				"safety_settings": [
+					{
+						"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+						"threshold": "BLOCK_NONE"
+					},
+					{
+						"category": "HARM_CATEGORY_HATE_SPEECH",
+						"threshold": "BLOCK_NONE"
+					},
+					{
+						"category": "HARM_CATEGORY_HARASSMENT",
+						"threshold": "BLOCK_NONE"
+					},
+					{
+						"category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+						"threshold": "BLOCK_NONE"
+					}
+				],
+				"generation_config": {
+					"temperature": 0.3,
+					"topK": 40,
+					"topP": 0.95,
+				}
+			},
+			"chatgpt": {
+				"url_chat": "https://api.openai.com/v1/chat/completions",
+				"api_key": "<API_KEY>",
+				"model": "gpt-4o",
+				"temperature": 0.9,
+				"max_tokens": 4096,
+				"top_p": 1,
+				"frequency_penalty": 0,
+				"presence_penalty": 0.6,
+				"prefix": "",
+				"prefix_tokens": 0,
+				"max_quote_length": 10
+			},
+			"dalle": {
+				"url_generations": "https://api.openai.com/v1/images/generations",
+				"url_variations": "https://api.openai.com/v1/images/variations",
+				"api_key": "<API_KEY>",
+				"n": 3,
+				"size": "512x512",
+				"response_format": "b64_json"
+			},
+			"stablediffusion": {
+				"url_texttoimage": "https://api.stability.ai/v1/generation/stable-diffusion-xl-beta-v2-2-2/text-to-image",
+				"api_key": "<API_KEY>",
+				"cfg_scale": 7.5,
+				"clip_guidance_preset": "FAST_BLUE",
+				"height": 512,
+				"width": 512,
+				"samples": 3,
+				"steps": 30
+			},
+			"stablediffusion_v3": {
+				"url_generate": "https://api.stability.ai/v2beta/stable-image/generate/sd3",
+				"url_headers": {
+					"authorization": "Bearer <API_KEY>",
+					"accept": "application/json"
+				},
+				"model": "sd3-large-turbo",
+				"output_format": "jpeg",
+				"strength": 0.7
+			},
+			"scriptexecute": {
+				"config": {
+					"script": "app-to-execute",
+					"logs": "/var/logs/app-folder",
+				}
+			},
+			"discord_cdn": {
+				"tokens": ["required_discord_token_a", "optional_discord_token_b", "optional_discord_token_c"],
+				"channels": ["allowed_channel_id1", "allowed_channel_id2", "allowed_channel_id3"]
+			}
+		}
+
+		const defaultTemplate = {
+			"faceswap": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\n\{response\}\n\{images\}\n\{info\}",
+			"pixverse": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\n\{response\}\n\{mp4\}\n\{info\}",
+			"pixverse_meme_face": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\n\{response\}\n\{mp4\}\n\{info\}",
+			"pika": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\n\{response\}\n\{mp4\}\n\{info\}",
+			"midjourney": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\n\{response\}\n\{images\}\n\{info\}",
+			"claude": "\{info\}[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\n\{settings\}",
+			"gemini": "\{info\}[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\n\{settings\}",
+			"gemini_vision": "\{info\}[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\n\{settings\}",
+			"chatgpt": "\{info\}[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\n\{settings\}",
+			"dalle": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\{attachments\}",
+			"stablediffusion": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\{attachments\}",
+			"stablediffusion_v3": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\n\{attachments\}\n\{response\}\n\{settings\}",
+			"scriptexecute": "[quote=\{poster_name\} post_id=\{post_id\} user_id=\{poster_id\}]\{request\}[/quote]\{response\}\{attachments\}",
+			"discord_cdn": "not used"
+		}
+
+		const urlAPIDocs = {
+			"faceswap": "https://useapi.net/docs/start-here/setup-faceswap",
+			"pixverse": "https://useapi.net/docs/start-here/setup-pixverse",
+			"pixverse_meme_face": "https://useapi.net/docs/start-here/setup-pixverse",
+			"pika": "https://useapi.net/docs/start-here/setup-pika",
+			"midjourney": "https://useapi.net/docs/start-here/setup-midjourney",
+			"claude": "https://docs.anthropic.com/claude/reference/messages_post",
+			"gemini": "https://ai.google.dev/tutorials/rest_quickstart",
+			"gemini_vision": "https://ai.google.dev/tutorials/rest_quickstart",
+			"chatgpt": "https://platform.openai.com/docs/api-reference/chat/create",
+			"dalle": "https://platform.openai.com/docs/api-reference/images/create",
+			"stablediffusion": "https://platform.stability.ai/docs/api-reference#tag/v1generation/operation/textToImage",
+			"stablediffusion_v3": "https://platform.stability.ai/docs/api-reference#tag/Generate/paths/~1v2beta~1stable-image~1generate~1sd3/post",
+			"scriptexecute": "https://github.com/privet-fun/phpbb_ailabs",
+			"discord_cdn": "https://github.com/privet-fun/phpbb_ailabs?tab=readme-ov-file#discord-cdn-smart-proxy-setup"
+		}
+
+		function doDefault(id, config, isJSON) {
+			const controller = $('#ailabs_controller option:selected').text().trim();
+			if (config[controller]) {
+				const selectElement = $('#' + id);
+				if (selectElement.is('a')) {
+					selectElement.attr('href', config[controller]);
+					selectElement.text(config[controller]);
+				} else {
+					selectElement.val(isJSON ? JSON.stringify(config[controller], null, 2) : config[controller]);
+				}
+			}
+		}
+
+		function sanitizeValue(value) {
+			if (value && Array.isArray(value) && value.length > 0)
+				return JSON.stringify(value);
+			return null;
+		}
+
+		function setupSelect(id, value) {
+			const hiddenInputName = '#' + id;
+			const selectName = hiddenInputName + '_select';
+			const selectElement = $(selectName);
+
+			selectElement.chosen().val(value);
+			selectElement.chosen().trigger("chosen:updated");
+
+			$(hiddenInputName).val(sanitizeValue(selectElement.val()));
+
+			selectElement.on('change', function (evt, params) {
+				$(hiddenInputName).val(sanitizeValue(selectElement.val()));
+			});
+		}
+
+		function resetValue(id, value) {
+			const selectName = '#' + id + '_select';
+			const selectElement = $(selectName);
+			selectElement.chosen().val(value);
+			selectElement.chosen().trigger("chosen:updated");
+		}
+
+		function doReset() {
+			setTimeout(function () {
+				resetValue('ailabs_forums_post', {{ ailabs_forums_post }});
+			resetValue('ailabs_forums_reply', {{ ailabs_forums_reply }});
+		resetValue('ailabs_forums_mention', {{ ailabs_forums_mention }});
+			}, 500);
+		}
+
+		window.addEventListener("DOMContentLoaded", function () {
+			$(".chosen-select").chosen();
+			setupSelect('ailabs_forums_post', {{ ailabs_forums_post }});
+		setupSelect('ailabs_forums_reply', {{ ailabs_forums_reply }});
+		setupSelect('ailabs_forums_mention', {{ ailabs_forums_mention }});
+		});
+
+		function find_username(url) {
+			'use strict';
+
+			popup(url, 760, 570, '_usersearch');
+			return false;
+		}
+
+		function openAPIDocURL() {
+			const controller = $('#ailabs_controller option:selected').text().trim();
+			if (controller)
+				window.open(urlAPIDocs[controller]);
+		}
+
+	</script>
+
+	<fieldset>
+		{% if ailabs_bot_url %}
+		<dl>
+			<dt>
+				<label for="ailabs_bot_url">{{ lang('LBL_AILABS_BOT_URL') ~ lang('COLON') }}</label>
+				<br><span>{{ lang('LBL_AILABS_BOT_URL_EXPLAIN') }}</span>
+			</dt>
+			<dd>
+				<a name="ailabs_bot_url" href="{{ ailabs_bot_url }}" target="_blank">{{ ailabs_bot_url }}</a>
+			</dd>
+		</dl>
+		{% endif %}
+		<dl>
+			<dt>
+				<label for="ailabs_enabled">{{ lang('LBL_AILABS_ENABLED') ~ lang('COLON') }}</label>
+			</dt>
+			<dd>
+				<label><input type="radio" id="ailabs_enabled" name="ailabs_enabled" value="1" {% if ailabs_enabled %}
+						checked="checked" {% endif %}> {{ lang('YES') }}</label>
+				<label><input type="radio" name="ailabs_enabled" value="0" {% if not ailabs_enabled %} checked="checked"
+						{% endif %}> {{ lang('NO') }}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="ailabs_username">{{ lang('LBL_AILABS_USERNAME') ~ lang('COLON') }}</label></dt>
+			<dd><input required class="text medium" type="text" id="ailabs_username" name="ailabs_username"
+					value="{{ ailabs_username }}" /></dd>
+			<dd>[ <a href="{U_FIND_USERNAME}" onclick="find_username(this.href); return false;">{L_FIND_USERNAME}</a> ]
+			</dd>
+		</dl>
+		<dl>
+			<dt>
+				<label for="ailabs_controller">{{ lang('LBL_AILABS_CONTROLLER') ~ lang('COLON') }}</label>
+				<br><a id="ailabs_bot_url_help" target="_blank" href="https://link"
+					onclick="event.preventDefault(); openAPIDocURL()">{{
+					lang('LBL_AILABS_API_DOCS') }}</a>
+			</dt>
+			<dd>
+				<select required id="ailabs_controller" name="ailabs_controller">
+					{% for CONTROLLER in AILABS_CONTROLLER_DESC %}
+					<option value="{{ CONTROLLER.VALUE }}" {% if CONTROLLER.SELECTED %} selected="selected" {% endif %}>
+						{{ CONTROLLER.NAME }}</option>
+					{% endfor %}
+				</select>
+			</dd>
+		</dl>
+		<dl>
+			<dt>
+				<label for="ailabs_config">{{ lang('LBL_AILABS_CONFIG') ~ lang('COLON') }}</label>
+				<br><span>{{ lang('LBL_AILABS_CONFIG_EXPLAIN') }}</span>
+				<br><br><input type="button" class="button2" value="{{ lang('LBL_AILABS_CONFIG_DEFAULT') }}"
+					onclick="doDefault('ailabs_config', defaultConfigs, true)">
+			</dt>
+			<dd>
+				<textarea required id="ailabs_config" name="ailabs_config" rows="15">{{ ailabs_config }}</textarea>
+			</dd>
+		</dl>
+		<dl>
+			<dt>
+				<label for="ailabs_template">{{ lang('LBL_AILABS_TEMPLATE') ~ lang('COLON') }}</label>
+				<br><span>{{ lang('LBL_AILABS_TEMPLATE_EXPLAIN') }}</span>
+				<br><br><input type="button" class="button2" value="{{ lang('LBL_AILABS_TEMPLATE_DEFAULT') }}"
+					onclick="doDefault('ailabs_template', defaultTemplate, false)">
+			</dt>
+			<dd>
+				<textarea required id="ailabs_template" name="ailabs_template" rows="5">{{ ailabs_template }}</textarea>
+			</dd>
+		</dl>
+	</fieldset>
+
+	<fieldset>
+		<legend>{{ lang('LBL_AILABS_POST_FORUMS') }}</legend>
+		<span>{{ lang('LBL_AILABS_POST_FORUMS_EXPLAIN') }}</span>
+		<select id="ailabs_forums_post_select" class="chosen-select" multiple
+			data-placeholder="{{ lang('LBL_AILABS_SELECT_FORUMS') }}" style="width: 100%;">
+			{% for key,value in AILABS_FORUMS_LIST %}
+			<option value="{{ key }}">{{ value }}</option>
+			{% endfor %}
+		</select>
+	</fieldset>
+
+	<fieldset>
+		<legend>{{ lang('LBL_AILABS_REPLY_FORUMS') }}</legend>
+		<span>{{ lang('LBL_AILABS_REPLY_FORUMS_EXPLAIN') }}</span>
+		<select id="ailabs_forums_reply_select" class="chosen-select" multiple
+			data-placeholder="{{ lang('LBL_AILABS_SELECT_FORUMS') }}" style="width: 100%;">
+			{% for key,value in AILABS_FORUMS_LIST %}
+			<option value="{{ key }}">{{ value }}</option>
+			{% endfor %}
+		</select>
+	</fieldset>
+
+	<fieldset>
+		<legend>{{ lang('LBL_AILABS_QUOTE_FORUMS') }}</legend>
+		<span>{{ lang('LBL_AILABS_QUOTE_FORUMS_EXPLAIN') }}</span>
+		<select id="ailabs_forums_mention_select" class="chosen-select" multiple
+			data-placeholder="{{ lang('LBL_AILABS_SELECT_FORUMS') }}" style="width: 100%;">
+			{% for key,value in AILABS_FORUMS_LIST %}
+			<option value="{{ key }}">{{ value }}</option>
+			{% endfor %}
+		</select>
+	</fieldset>
+
+	<fieldset>
+		<legend>{{ lang('ACP_SUBMIT_CHANGES') }}</legend>
+		<p class="submit-buttons">
+			<input type="hidden" id="ailabs_forums_post" name="ailabs_forums_post">
+			<input type="hidden" id="ailabs_forums_reply" name="ailabs_forums_reply">
+			<input type="hidden" id="ailabs_forums_mention" name="ailabs_forums_mention">
+
+			<input type="reset" class="button2" value="{{ lang('RESET') }}" onclick="doReset()">
+			<input type="submit" name="submit" class="button1" value="{{ lang('SUBMIT') }}">
+			{S_FORM_TOKEN}
+		</p>
+	</fieldset>
+</form>
+
+{% endif %}
+
+{% if U_AILABS_VEIW %}
+
+<table class="tableUsers zebra-table">
+	<thead>
+		<tr>
+			<th colspan="2" style="background: transparent; border: none;"></th>
+			<th colspan="3">{{ lang('LBL_AILABS_REPLY_TO') }}</th>
+			<th colspan="3" style="background: transparent; border: none;"></th>
+		</tr>
+		<tr>
+			<th>{{ lang('LBL_AILABS_USERNAME') }}</th>
+			<th>{{ lang('LBL_AILABS_CONTROLLER') }}</th>
+			<th>{{ lang('LBL_AILABS_POST_FORUMS') }}</th>
+			<th>{{ lang('LBL_AILABS_REPLY_FORUMS') }}</th>
+			<th>{{ lang('LBL_AILABS_QUOTE_FORUMS') }}</th>
+			<th class="centered-text">{{ lang('LBL_AILABS_ENABLED') }}</th>
+			<th></th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for user in U_AILABS_USERS %}
+		<tr>
+			<td><a href="{{ user.username_url }}">{{ user.username }}</a></td>
+			<td>{{ user.controller }}</td>
+			<td>{{ user.forums_post_names }}</td>
+			<td>{{ user.forums_reply_names }}</td>
+			<td>{{ user.forums_mention_names }}</td>
+			<td class="centered-text"><input type="checkbox" onclick="return false" {{ user.enabled ? 'checked' : '' }}>
+			</td>
+			<td class="centered-text">
+				<a href="{{ user.U_EDIT }}">{{ ICON_EDIT }}</a>
+				<a href="{{ user.U_DELETE }}">{{ ICON_DELETE }}</a>
+			</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+
+{% endif %}
+
+{% INCLUDE 'overall_footer.html' %}
